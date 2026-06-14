@@ -2,6 +2,9 @@
 
 k3s 클러스터의 Kubernetes 매니페스트를 GitOps 방식으로 관리하는 저장소입니다.
 
+## 아키텍처 구조
+![Infrastructure Architecture](neki_architecture.png)
+
 ## 디렉토리 구조
 
 ```
