@@ -212,8 +212,13 @@ data:
               url: ${DISCORD_WEBHOOK_URL}
               title: "🚨 [prod] neki-prod ERROR 발생"
               message: |
-                {{ range .Alerts }}*{{ .Labels.alertname }}* — {{ .Annotations.summary }}
-                pod: `{{ .Labels.pod }}` / level: `{{ .Labels.level }}`
+                {{ range .Alerts }}🚨 **[prod] neki-prod ERROR**
+                **메시지**: {{ .Labels.msg }}
+                **logger**: `{{ .Labels.logger }}`
+                **요청**: `{{ .Labels.method }} {{ .Labels.uri }}`
+                **requestId**: `{{ .Labels.rid }}`  /  **pod**: `{{ .Labels.pod }}`
+                🔎 전체 스택트레이스: Grafana Explore에서 `{namespace="prod"} | json | requestId="{{ .Labels.rid }}"` 검색
+                ─────────────
                 {{ end }}
   # 모든 알림을 Discord로 라우팅
   policies.yaml: |
@@ -221,7 +226,7 @@ data:
     policies:
       - orgId: 1
         receiver: discord-prod
-        group_by: ['alertname', 'pod']
+        group_by: ['alertname', 'pod', 'rid']
         group_wait: 10s
         group_interval: 1m
         repeat_interval: 30m
@@ -254,7 +259,7 @@ data:
                   datasource:
                     type: loki
                     uid: loki
-                  expr: 'sum by (pod) (count_over_time({namespace="prod", level="ERROR"}[5m]))'
+                  expr: 'sum by (pod, msg, logger, method, uri, rid) (count_over_time({namespace="prod", level="ERROR"} | json | label_format msg=`{{ .message }}`, logger=`{{ .logger_name }}`, method=`{{ .requestMethod }}`, uri=`{{ .requestUri }}`, rid=`{{ .requestId }}` [5m]))'
                   queryType: instant
                   refId: A
               - refId: B
