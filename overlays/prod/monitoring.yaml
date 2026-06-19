@@ -314,6 +314,11 @@ spec:
               value: "admin123"
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
+            # 외부 접속 도메인 — 알림 메시지의 링크가 이 주소로 생성됨 (기본값 http://localhost:3000 교체)
+            - name: GF_SERVER_ROOT_URL
+              value: "https://yapp-monitoring.suitestudy.com:4641"
+            - name: GF_SERVER_DOMAIN
+              value: "yapp-monitoring.suitestudy.com"
             # Discord 웹훅 URL (Secret으로 별도 관리, provisioning 파일에서 ${DISCORD_WEBHOOK_URL}로 참조)
             - name: DISCORD_WEBHOOK_URL
               valueFrom:
