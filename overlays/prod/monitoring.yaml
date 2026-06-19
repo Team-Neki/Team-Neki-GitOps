@@ -570,9 +570,9 @@ data:
         pipeline_stages:
           # 컨테이너 로그 JSON 래퍼 파싱 (CRI 형식)
           - cri: {}
-          # 로그 레벨 추출
+          # 로그 레벨 추출 (Spring Boot 기본 포맷: 타임스탬프 뒤에 레벨이 옴)
           - regex:
-              expression: '^(?P<level>INFO|WARN|ERROR|DEBUG)\s+'
+              expression: '\b(?P<level>INFO|WARN|ERROR|DEBUG)\b'
           - labels:
               level:
           # 파드 이름 추출 (경로에서)
