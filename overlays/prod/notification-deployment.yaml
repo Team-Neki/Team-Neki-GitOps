@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neki-notification
+  namespace: prod
+  labels:
+    app: neki-notification
+spec:
+  # 배치/스케줄러 워커는 단일 인스턴스로 운영
+  # (분산 락/ShedLock이 없다면 @Scheduled 작업이 여러 파드에서 중복 실행됨)
+  replicas: 1
+  # Recreate: 배포 시 기존 파드를 먼저 내리고 새 파드를 띄움
+  # → 롤링 중 2개 파드가 겹쳐 스케줄러가 중복 실행되는 것을 방지 (짧은 다운타임 허용)
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: neki-notification
+  template:
+    metadata:
+      labels:
+        app: neki-notification
+    spec:
+      containers:
+      - name: neki-notification
+        # ⚠️ 별도 이미지 - 실제 이미지/태그로 교체 필요 (CI가 이 태그를 별도로 bump 해야 함)
+        image: zxz4641/neki-notification:1.0.0-xxxxxxx
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: TZ
+          value: "Asia/Seoul"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: JASYPT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: neki-secrets
+              key: jasypt-password
+        # 리소스 제한 설정
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        # Startup Probe - 애플리케이션이 시작되었는지 확인 (느린 시작 대비)
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 12
+        # Liveness Probe - 애플리케이션이 살아있는지 확인
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # 종료 시 Graceful Shutdown (처리 중인 비동기 작업 마무리 시간 확보)
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
+        # Firebase 서비스 계정 JSON을 Secret에서 파일로 마운트 (FCM 푸시 발송)
+        # prod 프로파일에서 file:/etc/firebase/firebase-service-account.json 로 참조
+        volumeMounts:
+        - name: firebase-credentials
+          mountPath: /etc/firebase
+          readOnly: true
+      volumes:
+      - name: firebase-credentials
+        secret:
+          secretName: neki-secrets
+          items:
+          - key: firebase-service-account.json
+            path: firebase-service-account.json
+      # 파드 종료 시 최대 대기 시간
+      terminationGracePeriodSeconds: 30
+---
+# 인바운드 트래픽은 없지만, 스케줄러 수동 트리거 테스트용으로 ClusterIP Service 유지
+# 사용 예: kubectl port-forward -n prod svc/neki-notification-service 8080:8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: neki-notification-service
+  namespace: prod
+  labels:
+    app: neki-notification
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: neki-notification
