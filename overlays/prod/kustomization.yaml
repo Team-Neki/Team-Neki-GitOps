@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
+  - notification-deployment.yaml
   - ingress.yaml
   - ingressroute-https.yaml
   - certificate.yaml
