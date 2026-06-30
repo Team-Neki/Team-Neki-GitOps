@@ -25,7 +25,7 @@ spec:
       - name: neki-notification
         # ⚠️ 별도 이미지 - 실제 이미지/태그로 교체 필요 (CI가 이 태그를 별도로 bump 해야 함)
         # Notification 레포 deploy-prod.yml 이 image 라인을 sed(neki-batch-prod:)로 갱신한다.
-        image: zxz4641/neki-batch-prod:0.0.1-SNAPSHOT-3b728b7
+        image: zxz4641/neki-batch-prod:0.0.1-SNAPSHOT-c3b52b1
         imagePullPolicy: Always
         # 컨테이너 보안 강화 (Checkov CKV_K8S_20/CKV_K8S_31)
         # runAsNonRoot/readOnlyRootFilesystem은 이미지 권한·임시파일 쓰기 의존성 검증 후 별도 적용
