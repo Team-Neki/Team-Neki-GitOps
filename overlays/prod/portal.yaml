@@ -11,72 +11,207 @@ data:
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Neki Portal</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+      <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
       <style>
-        :root { color-scheme: light dark; }
-        * { box-sizing: border-box; }
-        body {
-          margin: 0;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-          background: #f4f5f7;
-          color: #1a1a1a;
+        :root {
+          --coral-1: #FF8A7A;   /* highlight  */
+          --coral-2: #FF6152;   /* mid        */
+          --coral-3: #F5432F;   /* deep       */
+          --coral-4: #E1381F;   /* shadow     */
+          --ink: #2b1512;
+          --ink-soft: #6b4b45;
+          --host: #9a7a74;
+          --card: #ffffff;
+          --sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+          --display: "Poppins", var(--sans);
         }
-        @media (prefers-color-scheme: dark) {
-          body { background: #16181d; color: #e7e9ee; }
-          .card { background: #21242c; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
-          tr { border-color: #30343e; }
-          a { color: #7db3ff; }
-          .desc { color: #9aa0ac; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        body {
+          min-height: 100vh;
+          font-family: var(--sans);
+          color: #fff;
+          overflow-x: hidden;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: clamp(30px, 6vh, 84px) 24px clamp(30px, 5vh, 60px);
+          position: relative;
+          background:
+            radial-gradient(130% 95% at 50% -8%, var(--coral-1) 0%, var(--coral-2) 42%, var(--coral-3) 78%, var(--coral-4) 100%);
+        }
+        /* soft floating light + grain for depth */
+        .glow {
+          position: fixed; border-radius: 50%; z-index: 0; pointer-events: none;
+          mix-blend-mode: screen; filter: blur(70px); opacity: .5;
+        }
+        .glow.g1 { width: 44vw; height: 44vw; top: -12%; left: 55%; background: radial-gradient(circle, #ffb3a6, transparent 62%); animation: float 20s ease-in-out infinite; }
+        .glow.g2 { width: 34vw; height: 34vw; bottom: -14%; left: -8%; background: radial-gradient(circle, #ff9d8a, transparent 62%); animation: float 26s ease-in-out infinite -8s; }
+        @keyframes float { 0%,100% { transform: translate(0,0) scale(1);} 50% { transform: translate(3%,4%) scale(1.08);} }
+        .grain {
+          position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .045;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+    
+        .shell {
+          position: relative; z-index: 2;
+          width: 100%; max-width: 620px;
+          display: flex; flex-direction: column; gap: 42px;
+        }
+    
+        /* ── Header ── */
+        header { opacity: 0; animation: rise .8s cubic-bezier(.2,.7,.2,1) forwards; }
+        .kicker {
+          display: inline-flex; align-items: center; gap: 9px;
+          font-family: var(--display); font-weight: 600; font-size: 12px; letter-spacing: .1em;
+          text-transform: uppercase; color: rgba(255,255,255,.85); margin-bottom: 20px;
+        }
+        .dot {
+          width: 7px; height: 7px; border-radius: 50%; background: #fff;
+          box-shadow: 0 0 0 0 rgba(255,255,255,.7); animation: pulse 2.4s ease-out infinite;
+        }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); }
+          70% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        .wordmark {
+          font-family: var(--display); font-weight: 800;
+          font-size: clamp(64px, 15vw, 128px); line-height: .9;
+          letter-spacing: -.035em; color: #fff;
+          text-shadow: 0 12px 40px rgba(150,40,20,.35);
+        }
+        .tagline {
+          margin-top: 14px; font-size: clamp(16px, 2.6vw, 20px); font-weight: 600;
+          color: #fff; letter-spacing: -.01em;
+        }
+        .subtitle { margin-top: 8px; color: rgba(255,255,255,.8); font-size: 14.5px; line-height: 1.6; }
+    
+        /* ── Service cards ── */
+        .services { display: flex; flex-direction: column; gap: 12px; }
+        .label {
+          font-family: var(--display); font-weight: 600; font-size: 12px; letter-spacing: .08em;
+          text-transform: uppercase; color: rgba(255,255,255,.75); padding: 0 4px 2px;
         }
         .card {
-          width: 100%;
-          max-width: 520px;
-          margin: 24px;
-          padding: 32px;
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 8px 30px rgba(0,0,0,.08);
+          position: relative; display: grid;
+          grid-template-columns: 40px 1fr auto; align-items: center; gap: 18px;
+          padding: 20px 20px; border-radius: 20px;
+          background: var(--card); color: var(--ink); text-decoration: none;
+          box-shadow: 0 10px 30px -12px rgba(120,30,15,.35);
+          opacity: 0; animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards;
+          transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s;
         }
-        h1 { margin: 0 0 4px; font-size: 22px; }
-        .desc { margin: 0 0 24px; color: #6b7280; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; }
-        th {
-          text-align: left; font-size: 12px; text-transform: uppercase;
-          letter-spacing: .04em; color: #9aa0ac; padding: 0 8px 10px;
+        .card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -16px rgba(120,30,15,.5); }
+    
+        .idx { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--coral-3); }
+        .meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .tag {
+          font-family: var(--display); font-weight: 600; font-size: 11px; letter-spacing: .06em;
+          text-transform: uppercase; color: var(--coral-3);
         }
-        tr { border-top: 1px solid #eceef1; }
-        td { padding: 14px 8px; font-size: 15px; }
-        td.name { font-weight: 600; white-space: nowrap; }
-        a { color: #2563eb; text-decoration: none; word-break: break-all; }
-        a:hover { text-decoration: underline; }
+        .name { font-size: 19px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+        .host {
+          font-size: 13px; font-weight: 500; color: var(--host);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .go {
+          width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center;
+          border-radius: 50%; color: #fff;
+          background: linear-gradient(135deg, var(--coral-2), var(--coral-3));
+          box-shadow: 0 6px 16px -6px rgba(245,67,47,.7);
+          transition: transform .3s cubic-bezier(.2,.7,.2,1);
+        }
+        .card:hover .go { transform: rotate(-45deg) scale(1.06); }
+        .go svg { width: 17px; height: 17px; }
+    
+        /* ── Footer ── */
+        footer {
+          display: flex; justify-content: space-between; align-items: center;
+          flex-wrap: wrap; gap: 12px; margin-top: 4px;
+          font-family: var(--display); font-weight: 500; font-size: 12px; color: rgba(255,255,255,.75);
+          letter-spacing: .03em;
+          opacity: 0; animation: rise .7s cubic-bezier(.2,.7,.2,1) .5s forwards;
+        }
+        footer .status { display: inline-flex; align-items: center; gap: 8px; color: #fff; }
+    
+        @keyframes rise { from { opacity: 0; transform: translateY(16px);} to { opacity: 1; transform: translateY(0);} }
+        .card:nth-child(2) { animation-delay: .12s; }
+        .card:nth-child(3) { animation-delay: .20s; }
+        .card:nth-child(4) { animation-delay: .28s; }
+        .card:nth-child(5) { animation-delay: .36s; }
+    
+        @media (max-width: 480px) {
+          .card { grid-template-columns: 30px 1fr auto; gap: 12px; padding: 18px 16px; }
+          .name { font-size: 17px; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, ::before { animation: none !important; opacity: 1 !important; } }
       </style>
     </head>
     <body>
-      <main class="card">
-        <h1>Neki Portal</h1>
-        <p class="desc">서비스 바로가기</p>
-        <table>
-          <thead>
-            <tr><th>이름</th><th>이동</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="name">어드민</td>
-              <td><a href="https://admin.suitestudy.com">admin.suitestudy.com</a></td>
-            </tr>
-            <tr>
-              <td class="name">스프린트 / 위키</td>
-              <td><a href="https://sprint.suitestudy.com">sprint.suitestudy.com</a></td>
-            </tr>
-            <tr>
-              <td class="name">깃허브</td>
-              <td><a href="https://github.com/Team-Neki" target="_blank" rel="noopener">github.com/Team-Neki</a></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="glow g1"></div>
+      <div class="glow g2"></div>
+      <div class="grain"></div>
+    
+      <main class="shell">
+        <header>
+          <span class="kicker"><span class="dot"></span>Team Neki · Service Portal</span>
+          <div class="wordmark">Neki</div>
+          <p class="tagline">네컷의 순간이 이어지는 곳</p>
+          <p class="subtitle">팀 네키의 서비스로 바로 이동하세요.</p>
+        </header>
+    
+        <section class="services">
+          <span class="label">바로가기</span>
+    
+          <a class="card" href="https://admin.suitestudy.com">
+            <span class="idx">01</span>
+            <span class="meta">
+              <span class="tag">Dashboard</span>
+              <span class="name">어드민</span>
+              <span class="host">admin.suitestudy.com</span>
+            </span>
+            <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+          </a>
+    
+          <a class="card" href="https://sprint.suitestudy.com">
+            <span class="idx">02</span>
+            <span class="meta">
+              <span class="tag">Sprint · Wiki</span>
+              <span class="name">스프린트 / 위키</span>
+              <span class="host">sprint.suitestudy.com</span>
+            </span>
+            <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+          </a>
+    
+          <a class="card" href="https://github.com/Team-Neki" target="_blank" rel="noopener">
+            <span class="idx">03</span>
+            <span class="meta">
+              <span class="tag">Repository</span>
+              <span class="name">깃허브</span>
+              <span class="host">github.com/Team-Neki</span>
+            </span>
+            <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+          </a>
+    
+          <a class="card" href="https://dev-yapp.suitestudy.com:4641/swagger-ui/index.html" target="_blank" rel="noopener">
+            <span class="idx">04</span>
+            <span class="meta">
+              <span class="tag">API Docs</span>
+              <span class="name">스웨거 (Dev)</span>
+              <span class="host">dev-yapp.suitestudy.com:4641/swagger-ui</span>
+            </span>
+            <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+          </a>
+        </section>
+    
+        <footer>
+          <span class="status"><span class="dot"></span>All systems operational</span>
+          <span>suitestudy.com</span>
+        </footer>
       </main>
     </body>
     </html>
