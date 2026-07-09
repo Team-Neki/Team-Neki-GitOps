@@ -10,6 +10,8 @@ resources:
   - certificate.yaml
   - monitoring.yaml
   - monitoring-ingressroute.yaml
+  - portal.yaml
+  - portal-ingressroute-https.yaml
   # secret.yaml 은 .gitignore 처리 - 민감 정보 별도 관리
   # - secret.yaml
   # tls-secret.yaml 은 cert-manager Certificate로 대체됨 (deprecated)
