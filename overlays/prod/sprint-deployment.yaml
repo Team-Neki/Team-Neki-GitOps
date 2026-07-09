@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sprint
+  namespace: prod
+  labels:
+    app: sprint
+spec:
+  replicas: 2
+  # Rolling Update - 다운타임 제로
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: sprint
+  template:
+    metadata:
+      labels:
+        app: sprint
+    spec:
+      # 앱 기동 전에 대기 중인 Prisma 마이그레이션을 적용한다.
+      # Prisma가 advisory lock을 잡으므로 롤링 중 파드가 겹쳐도 안전.
+      initContainers:
+        - name: migrate
+          # ⚠️ Sprint 레포에는 아직 이 이미지를 빌드/푸시하는 CI가 없다.
+          # :latest 태그는 ArgoCD가 매니페스트 변화를 감지 못해 자동 재배포가 안 되므로
+          # 파드 재시작(rollout restart)이나 CI의 태그 bump가 필요하다.
+          image: zxz4641/prod-sprint:latest
+          imagePullPolicy: Always
+          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+          envFrom:
+            - secretRef:
+                name: sprint-secret
+      containers:
+        - name: sprint
+          image: zxz4641/prod-sprint:latest
+          imagePullPolicy: Always
+          # 컨테이너 보안 강화 (Checkov CKV_K8S_20/CKV_K8S_23)
+          # 이미지가 nextjs(uid 1001) 유저로 실행됨. readOnlyRootFilesystem은 Next.js
+          # standalone이 .next 캐시/tmp에 쓰기가 필요해 별도 검증 후 적용.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: TZ
+              value: "Asia/Seoul"
+          # 비민감 설정은 ConfigMap, 시크릿(DATABASE_URL/AUTH_SECRET/GOOGLE_*)은 Secret에서.
+          envFrom:
+            - configMapRef:
+                name: sprint-config
+            - secretRef:
+                name: sprint-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          # Readiness - 트래픽 받을 준비 확인
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Liveness - 살아있는지 확인
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # 종료 시 Graceful Shutdown
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sprint-service
+  namespace: prod
+  labels:
+    app: sprint
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: sprint

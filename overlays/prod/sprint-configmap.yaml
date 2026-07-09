@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sprint-config
+  namespace: prod
+data:
+  # 앱의 공개 base URL (Ingress host와 일치해야 함). Auth.js가 OAuth 콜백 URL 생성에 사용.
+  AUTH_URL: "https://sprint.suitestudy.com"
+  AUTH_TRUST_HOST: "true"
+  # Google 로그인을 특정 Workspace 도메인으로 제한. 빈 값이면 모든 Google 계정 허용.
+  # 실제 허용 도메인으로 교체 필요.
+  ALLOWED_EMAIL_DOMAIN: ""
+  NODE_ENV: "production"
