@@ -10,6 +10,7 @@ data:
             192.168.219.106 yapp.suitestudy.com
             192.168.219.106 dev-yapp.suitestudy.com
             192.168.219.106 yapp-monitoring.suitestudy.com
+            192.168.219.106 portal.suitestudy.com
             fallthrough
         }
         forward . /etc/resolv.conf
