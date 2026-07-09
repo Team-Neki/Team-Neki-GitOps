@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: sprint-ingressroute-https
+  namespace: prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`sprint.suitestudy.com`)
+      kind: Rule
+      services:
+        - name: sprint-service
+          port: 3000
+  tls:
+    secretName: sprint-tls-cert
