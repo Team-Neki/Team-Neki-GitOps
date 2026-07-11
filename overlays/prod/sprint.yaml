@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sprint-config
+  namespace: prod
+data:
+  # Auth.js base URL. 브라우저 접속 주소와 정확히 일치해야 함 (ingress는 4641 포트 노출).
+  # Google OAuth Authorized redirect URI도 동일 등록: https://sprint.suitestudy.com:4641/api/auth/callback/google
+  AUTH_URL: "https://sprint.suitestudy.com:4641"
+  AUTH_TRUST_HOST: "true"
+  # Google 로그인 허용 도메인. 비우면 모든 Google 계정 허용.
+  ALLOWED_EMAIL_DOMAIN: ""
+  NODE_ENV: "production"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sprint
+  namespace: prod
+  labels:
+    app: sprint
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: sprint
+  template:
+    metadata:
+      labels:
+        app: sprint
+    spec:
+      automountServiceAccountToken: false
+      # 앱 기동 전 Prisma 마이그레이션 적용 (advisory lock으로 롤아웃 중 동시 파드 안전)
+      initContainers:
+        - name: migrate
+          image: zxz4641/sprint-prod:latest
+          imagePullPolicy: Always
+          command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+          envFrom:
+            - secretRef:
+                name: sprint-secret
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      containers:
+        - name: sprint
+          image: zxz4641/sprint-prod:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: sprint-config
+            - secretRef:
+                name: sprint-secret
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sprint-service
+  namespace: prod
+  labels:
+    app: sprint
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: sprint
