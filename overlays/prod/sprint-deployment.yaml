@@ -38,7 +38,7 @@ spec:
       # 앱 기동 전 Prisma 마이그레이션 적용 (advisory lock으로 롤아웃 중 동시 파드 안전)
       initContainers:
         - name: migrate
-          image: zxz4641/sprint-prod:latest
+          image: zxz4641/sprint-prod:ad71825
           imagePullPolicy: Always
           command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
           envFrom:
@@ -56,7 +56,7 @@ spec:
               type: RuntimeDefault
       containers:
         - name: sprint
-          image: zxz4641/sprint-prod:latest
+          image: zxz4641/sprint-prod:ad71825
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
