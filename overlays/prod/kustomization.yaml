@@ -10,7 +10,7 @@ resources:
   - certificate.yaml
   - monitoring.yaml
   - monitoring-ingressroute.yaml
-  - sprint.yaml
+  - sprint-deployment.yaml
   - sprint-ingressroute-https.yaml
   # portal 은 별도 레포(Team-Neki-Portal)로 분리 - argocd/apps/portal.yaml Application 이 관리
   # secret.yaml / sprint-secret.yaml 은 .gitignore 처리 - 민감 정보 별도 관리
