@@ -1,17 +1,4 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: sprint-config
-  namespace: prod
-data:
-  # Auth.js base URL. 브라우저 접속 주소와 정확히 일치해야 함 (ingress는 4641 포트 노출).
-  # Google OAuth Authorized redirect URI도 동일 등록: https://sprint.suitestudy.com:4641/api/auth/callback/google
-  AUTH_URL: "https://sprint.suitestudy.com:4641"
-  AUTH_TRUST_HOST: "true"
-  # Google 로그인 허용 도메인. 비우면 모든 Google 계정 허용.
-  ALLOWED_EMAIL_DOMAIN: ""
-  NODE_ENV: "production"
----
+# ConfigMap(sprint-config)은 sprint-config.yaml 로 분리됨(S3 등 env 는 그 파일에 추가).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

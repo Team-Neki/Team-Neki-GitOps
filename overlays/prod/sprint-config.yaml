@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sprint-config
+  namespace: prod
+data:
+  # Auth.js base URL. 브라우저 접속 주소와 정확히 일치해야 함 (ingress는 4641 포트 노출).
+  # Google OAuth Authorized redirect URI도 동일 등록: https://sprint.suitestudy.com:4641/api/auth/callback/google
+  AUTH_URL: "https://sprint.suitestudy.com:4641"
+  AUTH_TRUST_HOST: "true"
+  # Google 로그인 허용 도메인. 비우면 모든 Google 계정 허용.
+  ALLOWED_EMAIL_DOMAIN: ""
+  NODE_ENV: "production"
+  # 위키 본문 이미지 저장용 AWS S3(비민감 값만).
+  # 자격증명(AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)은 sprint-secret 에서 주입
+  # (gitignore + kubectl apply). 실제 AWS S3 라 endpoint 는 region 으로 자동 유도되어
+  # 불필요. MinIO 등 S3 호환 스토리지로 바꿀 때만 S3_ENDPOINT / S3_FORCE_PATH_STYLE 추가.
+  S3_BUCKET: "team-neki-sprint"
+  S3_REGION: "ap-northeast-2"
