@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: yapp-app-staging
-        image: zxz4641/yapp-dev:1.0.0-5c09698
+        image: zxz4641/yapp-dev:1.0.0-f49b5ba
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
