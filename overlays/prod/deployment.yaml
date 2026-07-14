@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: neki-prod
-        image: zxz4641/neki-prod:1.0.0-7710e40
+        image: zxz4641/neki-prod:1.0.0-8293227
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
