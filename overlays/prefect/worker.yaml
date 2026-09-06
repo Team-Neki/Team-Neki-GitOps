@@ -1,0 +1,174 @@
+# Prefect Kubernetes Worker. 원본: prefect-helm 의 prefect-worker 차트 렌더링 결과를 kustomize 용으로 정리
+# - work pool `kubernetes-pool` (type: kubernetes) 을 최초 기동 시 자동 생성
+# - flow run 은 prefect 네임스페이스에 Job 으로 생성됨 (worker-base-job-template.json 의 namespace 기본값)
+# - Role/RoleBinding 은 prefect 네임스페이스 안에서 Job/Pod 를 다룰 최소 권한
+# 업그레이드: image 태그 변경 (서버와 같은 Prefect 버전 유지, `-kubernetes` 접미사 이미지 사용)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prefect-worker
+  namespace: prefect
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prefect-worker
+  namespace: prefect
+rules:
+  - apiGroups: [""]
+    resources: ["events", "pods", "pods/log", "pods/status"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prefect-worker
+  namespace: prefect
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prefect-worker
+subjects:
+  - kind: ServiceAccount
+    name: prefect-worker
+    namespace: prefect
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefect-worker
+  namespace: prefect
+  labels:
+    app: prefect-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prefect-worker
+  template:
+    metadata:
+      labels:
+        app: prefect-worker
+    spec:
+      serviceAccountName: prefect-worker
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # work pool 이 이미 있으면 base job template 을 ConfigMap 내용으로 동기화 (최초 기동 시엔 건너뜀)
+        - name: sync-base-job-template
+          image: prefecthq/prefect:3.8.5-python3.11-kubernetes
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              work_pool_name="kubernetes-pool"
+              # 서버가 아직 안 떠 있으면(동시 기동 시) API 가 응답할 때까지 최대 5분 대기
+              i=0
+              until python -c "import httpx, os, sys; sys.exit(0 if httpx.get(os.environ['PREFECT_API_URL'] + '/health', timeout=5).status_code == 200 else 1)" 2>/dev/null; do
+                i=$((i + 1))
+                if [ "$i" -ge 60 ]; then echo "Prefect API not reachable after 5 minutes"; exit 1; fi
+                echo "Waiting for Prefect API at $PREFECT_API_URL ..."
+                sleep 5
+              done
+              if ! prefect work-pool inspect "$work_pool_name" > /dev/null 2>&1; then
+                echo "Work pool $work_pool_name does not exist yet; the worker will create it on start."
+                exit 0
+              fi
+              echo "Work pool $work_pool_name exists; syncing base job template..."
+              prefect work-pool update "$work_pool_name" --base-job-template ./baseJobTemplate.json
+          workingDir: /home/prefect
+          env:
+            - name: HOME
+              value: /home/prefect
+            - name: PREFECT_API_URL
+              value: http://prefect-server.prefect.svc.cluster.local:4200/api
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: scratch
+              mountPath: /home/prefect
+              subPathExpr: home
+            - name: scratch
+              mountPath: /tmp
+              subPathExpr: tmp
+            - name: base-job-template
+              mountPath: /home/prefect/baseJobTemplate.json
+              subPath: baseJobTemplate.json
+      containers:
+        - name: prefect-worker
+          image: prefecthq/prefect:3.8.5-python3.11-kubernetes
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/bin/tini", "-g", "--", "/opt/prefect/entrypoint.sh"]
+          args:
+            - prefect
+            - worker
+            - start
+            - --type
+            - kubernetes
+            - --pool
+            - kubernetes-pool
+            - --base-job-template
+            - baseJobTemplate.json
+          workingDir: /home/prefect
+          env:
+            - name: HOME
+              value: /home/prefect
+            - name: PREFECT_API_URL
+              value: http://prefect-server.prefect.svc.cluster.local:4200/api
+            - name: PREFECT_API_ENABLE_HTTP2
+              value: "true"
+            - name: PREFECT_WORKER_QUERY_SECONDS
+              value: "5"
+            - name: PREFECT_WORKER_PREFETCH_SECONDS
+              value: "10"
+            # kube-system Namespace UID (kubectl get ns kube-system -o jsonpath='{.metadata.uid}')
+            - name: PREFECT_KUBERNETES_CLUSTER_UID
+              value: e47c466b-9788-4ee1-9fb0-73a61c8fcd05
+            # flow run Pod 이벤트를 관찰할 네임스페이스
+            - name: PREFECT_INTEGRATIONS_KUBERNETES_OBSERVER_NAMESPACES
+              value: prefect
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: scratch
+              mountPath: /home/prefect
+              subPathExpr: home
+            - name: scratch
+              mountPath: /tmp
+              subPathExpr: tmp
+            - name: base-job-template
+              mountPath: /home/prefect/baseJobTemplate.json
+              subPath: baseJobTemplate.json
+      volumes:
+        - name: scratch
+          emptyDir: {}
+        - name: base-job-template
+          configMap:
+            name: prefect-worker-base-job-template

@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - server.yaml
+  - worker.yaml
+  # secret.yaml 은 .gitignore 처리 - 서버에서 직접 kubectl apply (secret.example.yaml 참고)
+  # - secret.yaml
+
+# Kubernetes work pool 의 base job template
+# - 원본: prefect work-pool get-default-base-job-template --type kubernetes
+# - 수정: namespace 기본값 default → prefect, finished_job_ttl 기본값 null → 86400 (완료 Job 1일 후 자동 정리)
+# - prefect-worker 가 기동 시 이 ConfigMap 을 work pool 에 동기화함 (worker.yaml 의 initContainer)
+configMapGenerator:
+  - name: prefect-worker-base-job-template
+    namespace: prefect
+    files:
+      - baseJobTemplate.json=worker-base-job-template.json
+    options:
+      disableNameSuffixHash: true
