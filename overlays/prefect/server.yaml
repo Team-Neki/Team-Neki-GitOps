@@ -75,14 +75,15 @@ spec:
               value: http://localhost:30420/api
             - name: PREFECT_UI_STATIC_DIRECTORY
               value: /ui_build
-            # DB 비밀번호는 secret.yaml(gitignore) 의 prefect-db Secret - postgres.yaml 과 공유
+            # DB 는 노드(호스트)에 패키지로 설치된 PostgreSQL 14 를 사용 (192.168.219.106:5432, DB/role 이름 prefect)
+            # 비밀번호는 secret.yaml(gitignore) 의 prefect-db Secret - 호스트 DB 의 prefect role 비밀번호와 같아야 함
             - name: PREFECT_SERVER_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: prefect-db
                   key: password
             - name: PREFECT_SERVER_DATABASE_CONNECTION_URL
-              value: postgresql+asyncpg://prefect:$(PREFECT_SERVER_DATABASE_PASSWORD)@prefect-postgres:5432/prefect
+              value: postgresql+asyncpg://prefect:$(PREFECT_SERVER_DATABASE_PASSWORD)@192.168.219.106:5432/prefect
           resources:
             requests:
               cpu: 250m
