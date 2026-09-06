@@ -38,7 +38,6 @@ gitops-k3s/
     └── prefect/                    # Prefect 워크플로 오케스트레이션 (namespace: prefect)
         ├── kustomization.yaml
         ├── namespace.yaml
-        ├── postgres.yaml           # Prefect 메타데이터 DB (PostgreSQL 16, local-path PVC)
         ├── server.yaml             # Prefect Server API/UI (NodePort 30420)
         ├── worker.yaml             # Kubernetes work pool 워커 + RBAC
         ├── worker-base-job-template.json # work pool base job template (flow run Job 스펙)
@@ -128,13 +127,13 @@ kubectl apply -k overlays/staging/
 
 ## Prefect (`overlays/prefect/`)
 
-Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(prefect-helm)를 렌더링한 결과를 kustomize 용으로 정리해 관리하며, 다른 overlay 와 같은 방식으로 ArgoCD(`argocd/apps/prefect.yaml`)가 동기화합니다.
+Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(prefect-helm)를 렌더링한 결과를 kustomize 용으로 정리해 관리하며, 다른 overlay 와 같은 방식으로 ArgoCD(`argocd/apps/prefect.yaml`)가 동기화합니다. 메타데이터 DB 는 클러스터 안에 두지 않고 노드(호스트)에 설치된 PostgreSQL 14 를 사용합니다.
 
 | 구성요소 | 리소스 | 비고 |
 |---|---|---|
 | prefect-server | Deployment / Service(NodePort 30420) | `prefecthq/prefect:3.8.5-python3.11` |
 | prefect-worker | Deployment / Role / RoleBinding | work pool `kubernetes-pool` 자동 생성, flow run 은 `prefect` 네임스페이스에 Job 으로 실행 |
-| prefect-postgres | StatefulSet / Service / PVC 10Gi | `postgres:16-alpine`, local-path |
+| (DB) | 호스트 PostgreSQL 14 (`192.168.219.106:5432`, DB/role `prefect`) | 클러스터 리소스 없음. 파드 → 노드 IP 로 직접 접속 |
 
 ### 접속
 
@@ -149,7 +148,7 @@ flow 코드에서 접속할 때(클러스터 내부): `PREFECT_API_URL=http://pr
 
 ### Secret
 
-`overlays/prefect/secret.yaml` (gitignore) 에 DB 비밀번호가 있습니다. PostgreSQL 과 prefect-server 가 같은 Secret(`prefect-db`)을 참조합니다. `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다.
+`overlays/prefect/secret.yaml` (gitignore) 에 호스트 DB `prefect` role 의 비밀번호가 있습니다(Secret `prefect-db`). `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 호스트 DB 에 role/database 를 만드는 방법은 `secret.example.yaml` 주석을 참고하세요.
 
 ```bash
 kubectl apply -f overlays/prefect/secret.yaml

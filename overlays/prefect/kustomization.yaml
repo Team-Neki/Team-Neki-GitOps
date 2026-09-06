@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - postgres.yaml
   - server.yaml
   - worker.yaml
   # secret.yaml 은 .gitignore 처리 - 서버에서 직접 kubectl apply (secret.example.yaml 참고)
