@@ -1,0 +1,129 @@
+# Prefect Server (API + UI). 원본: prefect-helm 의 prefect-server 차트 렌더링 결과를 kustomize 용으로 정리
+# 업그레이드: image 태그 변경 (DB 마이그레이션은 서버 기동 시 자동 수행)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prefect-server
+  namespace: prefect
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prefect-server
+  namespace: prefect
+  labels:
+    app: prefect-server
+spec:
+  # 외부 노출 없음. SSH 터널로 접근:
+  #   ssh -L 30420:localhost:30420 -p <PORT> yapp@suitestudy.com  →  http://localhost:30420
+  type: NodePort
+  selector:
+    app: prefect-server
+  ports:
+    - name: http
+      port: 4200
+      targetPort: 4200
+      nodePort: 30420
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefect-server
+  namespace: prefect
+  labels:
+    app: prefect-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prefect-server
+  template:
+    metadata:
+      labels:
+        app: prefect-server
+    spec:
+      serviceAccountName: prefect-server
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prefect-server
+          image: prefecthq/prefect:3.8.5-python3.11
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/bin/tini", "-g", "--", "/opt/prefect/entrypoint.sh"]
+          args: ["prefect", "server", "start", "--port", "4200"]
+          workingDir: /home/prefect
+          ports:
+            - name: http
+              containerPort: 4200
+          env:
+            - name: HOME
+              value: /home/prefect
+            - name: PREFECT_LOGGING_SERVER_LEVEL
+              value: INFO
+            - name: PREFECT_SERVER_API_HOST
+              value: 0.0.0.0
+            - name: PREFECT_SERVER_API_PORT
+              value: "4200"
+            - name: PREFECT_SERVER_API_BASE_PATH
+              value: /api
+            # 브라우저(UI)가 API 를 호출하는 주소. SSH 터널 로컬 포트(30420)와 맞춰야 함
+            - name: PREFECT_UI_API_URL
+              value: http://localhost:30420/api
+            - name: PREFECT_UI_STATIC_DIRECTORY
+              value: /ui_build
+            # DB 비밀번호는 secret.yaml(gitignore) 의 prefect-db Secret - postgres.yaml 과 공유
+            - name: PREFECT_SERVER_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: prefect-db
+                  key: password
+            - name: PREFECT_SERVER_DATABASE_CONNECTION_URL
+              value: postgresql+asyncpg://prefect:$(PREFECT_SERVER_DATABASE_PASSWORD)@prefect-postgres:5432/prefect
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 4200
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 4200
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 4200
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          # readOnlyRootFilesystem 이라 쓰기 필요한 경로는 emptyDir 로
+          volumeMounts:
+            - name: scratch
+              mountPath: /home/prefect
+              subPathExpr: home
+            - name: scratch
+              mountPath: /tmp
+              subPathExpr: tmp
+            - name: scratch
+              mountPath: /ui_build
+              subPathExpr: ui-build
+      volumes:
+        - name: scratch
+          emptyDir: {}
