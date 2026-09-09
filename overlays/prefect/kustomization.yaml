@@ -14,7 +14,7 @@ resources:
 # 되고 배포만 안 된다.
 images:
   - name: ghcr.io/team-neki/team-neki-workflow
-    newTag: 0.1.0-e8867e6
+    newTag: 0.1.1-8e428a6
 # Kubernetes work pool 의 base job template
 # - 원본: prefect work-pool get-default-base-job-template --type kubernetes
 # - 수정: namespace 기본값 default → prefect, finished_job_ttl 기본값 null → 86400 (완료 Job 1일 후 자동 정리)
