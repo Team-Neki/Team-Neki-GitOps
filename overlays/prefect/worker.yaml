@@ -1,8 +1,11 @@
 # Prefect Kubernetes Worker. 원본: prefect-helm 의 prefect-worker 차트 렌더링 결과를 kustomize 용으로 정리
-# - work pool `kubernetes-pool` (type: kubernetes) 을 최초 기동 시 자동 생성
+# - work pool `neki-pool` (type: kubernetes). 없으면 initContainer 가 만든다
+# - worker 와 flow run 이 같은 이미지(Team-Neki-Workflow)를 쓴다. 베이스 prefect 이미지에는
+#   flows 가 없어 flow run 이 ModuleNotFoundError 로 죽는다
 # - flow run 은 prefect 네임스페이스에 Job 으로 생성됨 (worker-base-job-template.json 의 namespace 기본값)
 # - Role/RoleBinding 은 prefect 네임스페이스 안에서 Job/Pod 를 다룰 최소 권한
-# 업그레이드: image 태그 변경 (서버와 같은 Prefect 버전 유지, `-kubernetes` 접미사 이미지 사용)
+# 업그레이드: 이미지 태그는 Team-Neki-Workflow 의 build.yml 이 kustomization.yaml 의
+# newTag 로 갱신한다. 여기서 직접 고치지 않는다
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -68,7 +71,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              work_pool_name="kubernetes-pool"
+              work_pool_name="neki-pool"
               # 서버가 아직 안 떠 있으면(동시 기동 시) API 가 응답할 때까지 최대 5분 대기
               i=0
               until python -c "import httpx, os, sys; sys.exit(0 if httpx.get(os.environ['PREFECT_API_URL'] + '/health', timeout=5).status_code == 200 else 1)" 2>/dev/null; do
@@ -111,9 +114,60 @@ spec:
             - name: base-job-template
               mountPath: /home/prefect/baseJobTemplate.json
               subPath: baseJobTemplate.json
+        # deployments/ 를 Prefect API 에 등록한다. 이미지 안에서 돌므로 클러스터
+        # 밖에서 서버에 접근할 필요가 없다 (서버는 외부에 노출되지 않는다).
+        #
+        # workingDir 이 /opt/prefect 여야 한다. to_deployment() 의 entrypoint 가
+        # cwd 기준 상대경로(flows/<name>/flow.py:<fn>)로 잡히고, flow run Job 도
+        # 같은 이미지의 WORKDIR 에서 그 경로를 푼다. 다른 데서 등록하면 entrypoint
+        # 가 어긋나 flow run 이 import 에서 죽는다.
+        #
+        # 앞 initContainer 가 API 가 응답할 때까지 기다린 뒤에만 성공하므로
+        # 여기서 다시 기다리지 않는다. 순서를 바꾸면 대기를 옮겨야 한다.
+        - name: register-deployments
+          image: ghcr.io/team-neki/team-neki-workflow
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # worker 도 기동 시 pool 을 만들지만 그건 initContainer 뒤다.
+              # deploy.py 가 등록할 pool 이 먼저 있어야 하므로 없으면 만든다.
+              if ! prefect work-pool inspect "$PREFECT_WORK_POOL" > /dev/null 2>&1; then
+                echo "Work pool $PREFECT_WORK_POOL does not exist; creating..."
+                prefect work-pool create "$PREFECT_WORK_POOL" --type kubernetes
+              fi
+              # WORKFLOW_IMAGE 는 이미지에 구워져 있어 job_variables.image 로 들어간다.
+              python deploy.py
+          workingDir: /opt/prefect
+          env:
+            - name: HOME
+              value: /home/prefect
+            - name: PREFECT_API_URL
+              value: http://prefect-server.prefect.svc.cluster.local:4200/api
+            - name: PREFECT_WORK_POOL
+              value: neki-pool
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsUser: 1001
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: scratch
+              mountPath: /home/prefect
+              subPathExpr: home
+            - name: scratch
+              mountPath: /tmp
+              subPathExpr: tmp
       containers:
         - name: prefect-worker
-          image: prefecthq/prefect:3.8.5-python3.11-kubernetes
+          image: ghcr.io/team-neki/team-neki-workflow
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/tini", "-g", "--", "/opt/prefect/entrypoint.sh"]
           args:
@@ -123,7 +177,7 @@ spec:
             - --type
             - kubernetes
             - --pool
-            - kubernetes-pool
+            - neki-pool
             - --base-job-template
             - baseJobTemplate.json
           workingDir: /home/prefect
