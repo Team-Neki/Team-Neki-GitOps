@@ -8,6 +8,16 @@ resources:
   # secret.yaml 은 .gitignore 처리 - 서버에서 직접 kubectl apply (secret.example.yaml 참고)
   # - secret.yaml
 
+# worker 와 flow run 이 쓰는 이미지. Team-Neki-Workflow 의 build.yml 이 main merge
+# 마다 newTag 를 갱신하고 ArgoCD 가 그것으로 worker 를 롤링한다.
+#
+# name 은 worker.yaml 이 참조하는 이미지 이름과 같아야 한다. 다르면 kustomize 가
+# 바꿔칠 대상을 못 찾는데, 그 경우에도 build.yml 의 yq 는 통과하므로 CI 는 초록불이
+# 되고 배포만 안 된다.
+images:
+  - name: ghcr.io/team-neki/team-neki-workflow
+    newTag: 0.1.0-e8867e6
+
 # Kubernetes work pool 의 base job template
 # - 원본: prefect work-pool get-default-base-job-template --type kubernetes
 # - 수정: namespace 기본값 default → prefect, finished_job_ttl 기본값 null → 86400 (완료 Job 1일 후 자동 정리)
