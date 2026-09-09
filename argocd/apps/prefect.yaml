@@ -1,0 +1,30 @@
+# Prefect 기반 리소스 (namespace, PostgreSQL) - overlays/prefect kustomize
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prefect
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Team-Neki/Team-Neki-GitOps.git
+    targetRevision: main
+    path: overlays/prefect
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prefect
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

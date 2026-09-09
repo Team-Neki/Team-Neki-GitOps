@@ -35,6 +35,14 @@ gitops-k3s/
         ├── ingressroute-https.yaml # HTTPS (websecure entrypoint)
         ├── certificate.yaml        # cert-manager TLS 인증서 요청
         └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
+    └── prefect/                    # Prefect 워크플로 오케스트레이션 (namespace: prefect)
+        ├── kustomization.yaml
+        ├── namespace.yaml
+        ├── server.yaml             # Prefect Server API/UI (NodePort 30420)
+        ├── worker.yaml             # Kubernetes work pool 워커 + RBAC
+        ├── worker-base-job-template.json # work pool base job template (flow run Job 스펙)
+        ├── secret.example.yaml     # DB 비밀번호 Secret 예시
+        └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
 ```
 
 ## 클러스터 인프라 (`cluster/`)
@@ -117,6 +125,40 @@ kubectl apply -k overlays/prod/
 kubectl apply -k overlays/staging/
 ```
 
+## Prefect (`overlays/prefect/`)
+
+Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(prefect-helm)를 렌더링한 결과를 kustomize 용으로 정리해 관리하며, 다른 overlay 와 같은 방식으로 ArgoCD(`argocd/apps/prefect.yaml`)가 동기화합니다. 메타데이터 DB 는 클러스터 안에 두지 않고 노드(호스트)에 설치된 PostgreSQL 14 를 사용합니다.
+
+| 구성요소 | 리소스 | 비고 |
+|---|---|---|
+| prefect-server | Deployment / Service(NodePort 30420) | `prefecthq/prefect:3.8.5-python3.11` |
+| prefect-worker | Deployment / Role / RoleBinding | work pool `kubernetes-pool` 자동 생성, flow run 은 `prefect` 네임스페이스에 Job 으로 실행 |
+| (DB) | 호스트 PostgreSQL 14 (`192.168.219.106:5432`, DB/role `prefect`) | 클러스터 리소스 없음. 파드 → 노드 IP 로 직접 접속 |
+
+### 접속
+
+외부(DNS/nginx/TLS) 노출 없이 SSH 터널로만 접근합니다. UI 가 API 를 `http://localhost:30420/api` 로 호출하도록 설정되어 있으므로 **로컬 포트도 30420** 으로 맞춰야 합니다.
+
+```bash
+ssh -L 30420:localhost:30420 -p <PORT> yapp@suitestudy.com
+# 브라우저: http://localhost:30420
+```
+
+flow 코드에서 접속할 때(클러스터 내부): `PREFECT_API_URL=http://prefect-server.prefect.svc.cluster.local:4200/api`
+
+### Secret
+
+`overlays/prefect/secret.yaml` (gitignore) 에 호스트 DB `prefect` role 의 비밀번호가 있습니다(Secret `prefect-db`). `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 호스트 DB 에 role/database 를 만드는 방법은 `secret.example.yaml` 주석을 참고하세요.
+
+```bash
+kubectl apply -f overlays/prefect/secret.yaml
+kubectl apply -k overlays/prefect/
+```
+
+### 업그레이드
+
+`server.yaml` / `worker.yaml` 의 이미지 태그를 같은 Prefect 버전으로 올립니다(워커는 `-kubernetes` 접미사 이미지). DB 마이그레이션은 서버 기동 시 자동 수행됩니다. work pool 의 base job template 을 바꾸려면 `worker-base-job-template.json` 을 수정하면 워커 재기동 시 initContainer 가 work pool 에 동기화합니다.
+
 ## gitignore 처리 대상
 
 다음 파일들은 민감 정보를 포함하므로 Git에 올리지 않고 직접 관리합니다.
@@ -125,6 +167,7 @@ kubectl apply -k overlays/staging/
 |------|------|---------|
 | `overlays/prod/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/staging/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
+| `overlays/prefect/secret.yaml` | Prefect DB 비밀번호 | 서버에서 직접 `kubectl apply` |
 
 > TLS Secret(`tls-secret.yaml`)은 cert-manager의 Certificate로 대체되어 더 이상 사용하지 않습니다.
 
