@@ -1,13 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - namespace.yaml
   - server.yaml
   - worker.yaml
   # secret.yaml 은 .gitignore 처리 - 서버에서 직접 kubectl apply (secret.example.yaml 참고)
   # - secret.yaml
-
 # worker 와 flow run 이 쓰는 이미지. Team-Neki-Workflow 의 build.yml 이 main merge
 # 마다 newTag 를 갱신하고 ArgoCD 가 그것으로 worker 를 롤링한다.
 #
@@ -17,7 +15,6 @@ resources:
 images:
   - name: ghcr.io/team-neki/team-neki-workflow
     newTag: 0.1.0-e8867e6
-
 # Kubernetes work pool 의 base job template
 # - 원본: prefect work-pool get-default-base-job-template --type kubernetes
 # - 수정: namespace 기본값 default → prefect, finished_job_ttl 기본값 null → 86400 (완료 Job 1일 후 자동 정리)
