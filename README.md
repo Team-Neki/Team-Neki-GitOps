@@ -140,7 +140,8 @@ Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(pref
 외부(DNS/nginx/TLS) 노출 없이 SSH 터널로만 접근합니다. UI 가 API 를 `http://localhost:30420/api` 로 호출하도록 설정되어 있으므로 **로컬 포트도 30420** 으로 맞춰야 합니다.
 
 ```bash
-ssh -L 30420:localhost:30420 -p 2024 yapp@suitestudy.com
+# 접속 정보(사용자, 호스트, SSH 포트)는 팀 내부 채널을 참고한다. 이 레포는 public 이다.
+ssh -L 30420:localhost:30420 -p <포트> <사용자>@<호스트>
 # 브라우저: http://localhost:30420
 ```
 

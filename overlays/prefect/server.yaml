@@ -14,8 +14,9 @@ metadata:
   labels:
     app: prefect-server
 spec:
-  # 외부 노출 없음. SSH 터널로 접근:
-  #   ssh -L 30420:localhost:30420 -p 2024 yapp@suitestudy.com  →  http://localhost:30420
+  # 외부 노출 없음. SSH 터널로 접근한다 (로컬 포트도 30420 이어야 UI 가 API 를 찾는다).
+  #   ssh -L 30420:localhost:30420 -p <포트> <사용자>@<호스트>  →  http://localhost:30420
+  # 접속 정보는 README 의 "접속" 절 참고.
   type: NodePort
   selector:
     app: prefect-server
