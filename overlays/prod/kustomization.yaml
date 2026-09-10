@@ -13,9 +13,22 @@ resources:
   - sprint-deployment.yaml
   - sprint-config.yaml
   - sprint-ingressroute-https.yaml
+  - admin-web-deployment.yaml
+  - admin-web-config.yaml
+  - admin-web-ingressroute-https.yaml
   # portal 은 별도 레포(Team-Neki-Portal)로 분리 - argocd/apps/portal.yaml Application 이 관리
-  # secret.yaml / sprint-secret.yaml 은 .gitignore 처리 - 민감 정보 별도 관리
-  # sprint-secret.example.yaml 은 문서용이므로 kustomize에 포함하지 않음
+  # secret.yaml / sprint-secret.yaml / admin-web-secret.yaml 은 .gitignore 처리 - 민감 정보 별도 관리
+  # sprint-secret.example.yaml / admin-web-secret.example.yaml 은 문서용이므로 kustomize에 포함하지 않음
   # - secret.yaml
   # tls-secret.yaml 은 cert-manager Certificate로 대체됨 (deprecated)
   # - tls-secret.yaml
+
+# Neki Admin 이미지. admin-web-deployment.yaml 은 태그 없이 이미지를 참조하고 태그는
+# 여기서만 관리한다 (overlays/prefect 와 같은 방식). Team-Neki-Admin 의 빌드
+# 워크플로가 newTag 를 갱신하면 ArgoCD 가 그것으로 롤링한다.
+#
+# name 은 admin-web-deployment.yaml 이 참조하는 이미지 이름과 정확히 같아야 한다.
+# 다르면 kustomize 가 바꿔칠 대상을 못 찾아 배포만 조용히 안 된다.
+images:
+  - name: ghcr.io/team-neki/neki-admin-web
+    newTag: 0.1.0

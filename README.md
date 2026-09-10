@@ -26,6 +26,11 @@ gitops-k3s/
     │   ├── certificate.yaml        # cert-manager TLS 인증서 요청
     │   ├── monitoring.yaml         # Prometheus / Grafana / Loki / Promtail
     │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
+    │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC)
+    │   ├── admin-web-config.yaml       # neki-admin-web 비민감 환경변수
+    │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute
+    │   ├── admin-web-secret.example.yaml # Amplitude/오픈뱅킹 Secret 예시
+    │   ├── admin-web-secret.yaml       # ⚠️ gitignore - 직접 관리 필요
     │   └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
     └── staging/                    # 스테이징 환경 (namespace: staging)
         ├── kustomization.yaml
@@ -100,6 +105,7 @@ kubectl apply -f cluster/coredns/coredns-hairpin-nat.yaml
 |------|--------|------------|
 | prod | `yapp.suitestudy.com` | prod |
 | prod (모니터링) | `yapp-monitoring.suitestudy.com` | prod |
+| prod (어드민) | `admin-web.suitestudy.com` | prod |
 | staging | `dev-yapp.suitestudy.com` | staging |
 
 ### TLS 인증서
@@ -111,6 +117,7 @@ cert-manager가 Let's Encrypt에서 인증서를 발급받아 Secret으로 자�
 |------|----------------|---------------|
 | prod | `neki-tls-cert` | `neki-tls-cert` |
 | prod | `yapp-monitoring-tls-cert` | `yapp-monitoring-tls-cert` |
+| prod | `admin-web-tls-cert` | `admin-web-tls-cert` |
 | staging | `dev-yapp-tls-cert` | `dev-yapp-tls-cert` |
 
 IngressRoute에서 `tls.secretName`으로 이 Secret을 참조합니다.
@@ -124,6 +131,67 @@ kubectl apply -k overlays/prod/
 # staging 전체 적용
 kubectl apply -k overlays/staging/
 ```
+
+## Neki Admin (`overlays/prod/admin-web-*.yaml`)
+
+[Team-Neki-Admin](https://github.com/Team-Neki/Team-Neki-Admin) 의 운영자 관리 페이지(Next.js
+standalone) 입니다. `prod` 네임스페이스에 있으므로 기존 `neki-prod` ArgoCD Application 이
+그대로 동기화합니다. 별도 Application 은 없습니다.
+
+| 구성요소 | 리소스 | 비고 |
+|---|---|---|
+| neki-admin-web | Deployment (replicas 1) / Service (ClusterIP 80→3000) | `ghcr.io/team-neki/neki-admin-web` |
+| (캐시) | PersistentVolumeClaim 1Gi (`local-path`) | Amplitude 일별 집계 SQLite, `/app/.data` 마운트 |
+| 설정 | ConfigMap `neki-admin-web-config` | 비민감 환경변수 |
+| 민감값 | Secret `neki-admin-web-secret` | ⚠️ gitignore - 직접 관리 |
+
+접속: <https://admin-web.suitestudy.com:4641> (Traefik `websecure` 는 4641 포트)
+
+### 이미지
+
+태그는 `overlays/prod/kustomization.yaml` 의 `images.newTag` 에서만 관리합니다.
+`admin-web-deployment.yaml` 은 태그 없이 이미지를 참조하므로, 배포 버전을 올릴 때는
+`newTag` 만 바꾸면 ArgoCD 가 롤링합니다. `overlays/prefect` 와 같은 방식입니다.
+
+GHCR 패키지는 `team-neki-workflow` 처럼 **공개(public)** 여야 합니다. 비공개로 두면
+파드가 `ImagePullBackOff` 로 멈추므로, 그 경우에는 `dockerconfigjson` 타입 Secret 을
+만들고 `admin-web-deployment.yaml` 에 `imagePullSecrets` 를 추가해야 합니다.
+
+### replicas 를 올리면 안 되는 이유
+
+Amplitude 일별 집계 캐시를 SQLite 파일 하나에 쓰기 때문에 `replicas: 1` 고정이고,
+같은 이유로 `strategy` 는 `Recreate` 입니다. `local-path` PVC 는 `ReadWriteOnce` 이고
+노드 로컬이므로, `RollingUpdate` 로 두면 새 파드와 기존 파드가 겹치는 순간 같은
+볼륨을 동시에 붙잡습니다. 확장이 필요하면 앱의 `db/index.ts` 를 공유 DB adapter 로
+바꾼 뒤에 replicas 를 올립니다.
+
+캐시 파일은 HTTP 로 노출되지 않습니다 (Next.js 는 `public/` 과 `.next/static/` 만 서빙).
+경로를 바꾸려면 ConfigMap 의 `NEKI_ADMIN_DATABASE_PATH` 와 `admin-web-deployment.yaml` 의
+`volumeMounts.mountPath` 를 함께 바꿔야 합니다. 한쪽만 바꾸면 파드는 정상 기동하고
+캐시만 PVC 밖에 생겨 재시작마다 사라집니다.
+
+### Secret
+
+`admin-web-secret.example.yaml` 을 `admin-web-secret.yaml` 로 복사해 값을 채우고 직접 apply 합니다.
+
+```bash
+kubectl apply -f overlays/prod/admin-web-secret.yaml
+```
+
+Amplitude 키 이름에 `NEKI_PROD_` 접두사가 붙는 점을 주의하세요. Team-Neki-Admin 의
+README 와 `.env.local.example` 은 `AMPLITUDE_API_KEY` / `AMPLITUDE_SECRET_KEY` 로 적고
+있지만, 실제 코드가 읽는 이름은 `NEKI_PROD_AMPLITUDE_API_KEY` /
+`NEKI_PROD_AMPLITUDE_SECRET_KEY` 이고 fallback 이 없습니다. 접두사 없이 넣으면 파드는
+정상 기동하고 대시보드만 "API 키 미설정" 안내로 뜹니다.
+
+### 남은 작업
+
+- **앱 인증 없음.** 현재 어드민에는 자체 로그인이 없어 도메인을 아는 누구나 접근할 수
+  있습니다. 앱에 로그인을 붙이거나, Traefik `basicAuth` / `ipAllowList` 미들웨어를
+  `admin-web-ingressroute-https.yaml` 에 추가해야 합니다.
+- **health 엔드포인트 없음.** `/api/health` 가 없어 readiness 가 `/` 를 SSR 합니다.
+  주기를 30s 로 늘려 부담을 줄였지만, 앱에 `/api/health` 가 추가되면 probe 를 그쪽으로
+  옮기는 편이 낫습니다.
 
 ## Prefect (`overlays/prefect/`)
 
@@ -168,6 +236,7 @@ kubectl apply -k overlays/prefect/
 | `overlays/prod/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/staging/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/prefect/secret.yaml` | Prefect DB 비밀번호 | 서버에서 직접 `kubectl apply` |
+| `overlays/prod/admin-web-secret.yaml` | Amplitude 조회 키, 오픈뱅킹 토큰 | 서버에서 직접 `kubectl apply` |
 
 > TLS Secret(`tls-secret.yaml`)은 cert-manager의 Certificate로 대체되어 더 이상 사용하지 않습니다.
 
@@ -186,6 +255,7 @@ kubectl apply -f cluster/cert-manager/cluster-issuer.yaml
 # 3. App Secret 적용 (gitignore 파일 - 직접 관리)
 kubectl apply -f overlays/prod/secret.yaml
 kubectl apply -f overlays/staging/secret.yaml
+kubectl apply -f overlays/prod/admin-web-secret.yaml
 
 # 4. 환경별 리소스 적용
 kubectl apply -k overlays/prod/
