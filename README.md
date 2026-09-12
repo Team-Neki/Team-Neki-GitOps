@@ -147,9 +147,14 @@ standalone) 입니다. `prod` 네임스페이스에 있으므로 기존 `neki-pr
 
 ### 이미지
 
-태그는 `overlays/prod/kustomization.yaml` 의 `images.newTag` 에서만 관리합니다.
-`admin-web-deployment.yaml` 은 태그 없이 이미지를 참조하므로, 배포 버전을 올릴 때는
-`newTag` 만 바꾸면 ArgoCD 가 롤링합니다. `overlays/prefect` 와 같은 방식입니다.
+태그는 `overlays/prod/admin-web-deployment.yaml` 의 `image:` 줄에 직접 적습니다.
+`neki-prod` / `sprint` / `notification` 과 같은 방식이고, Team-Neki-Admin 의 빌드
+워크플로가 그 줄을 갱신하면 ArgoCD 가 롤링합니다.
+
+이미지는 한 곳에서만 참조합니다. `sprint-deployment.yaml` 처럼 같은 이미지를 여러
+줄에 적으면 갱신에서 하나를 놓쳤을 때 컨테이너마다 버전이 갈리는데, 파드는 정상
+기동하므로 드러나지 않습니다. 워크플로는 갱신 전후의 참조 개수를 비교해 이 경우를
+막습니다.
 
 GHCR 패키지는 `team-neki-workflow` 처럼 **공개(public)** 여야 합니다. 비공개로 두면
 파드가 `ImagePullBackOff` 로 멈추므로, 그 경우에는 `dockerconfigjson` 타입 Secret 을
