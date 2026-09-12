@@ -40,9 +40,8 @@ spec:
           ports:
             - containerPort: 3000
               protocol: TCP
+          # ConfigMap 은 두지 않는다. 비민감 값까지 Secret 하나로 모았다.
           envFrom:
-            - configMapRef:
-                name: neki-admin-web-config
             - secretRef:
                 name: neki-admin-web-secret
           # 앱에 전용 health 엔드포인트가 없다. liveness 는 프로세스가 포트를
@@ -88,9 +87,10 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           volumeMounts:
-            # NEKI_ADMIN_DATABASE_PATH 가 가리키는 디렉토리다. 경로를 바꾸려면
-            # ConfigMap 의 값과 이 mountPath 를 함께 바꿔야 한다. 한쪽만 바꾸면
-            # 파드는 그대로 뜨고 캐시만 조용히 휘발된다.
+            # 현재 앱은 이 경로에 아무것도 쓰지 않는다. Amplitude 집계를 SQLite 로
+            # 캐시하던 시절의 마운트인데, 앱이 관리자 API 프록시로 바뀌면서
+            # (Team-Neki-Admin 75cf4f7) 로컬 저장소가 사라졌다. 볼륨을 계속 둘지는
+            # 아직 정하지 않았다.
             - name: data
               mountPath: /app/.data
             # Next.js 가 런타임에 .next/cache 를 쓴다. 이미지 레이어에 쓰지 않도록 분리.

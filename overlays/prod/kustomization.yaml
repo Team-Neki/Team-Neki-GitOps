@@ -14,7 +14,6 @@ resources:
   - sprint-config.yaml
   - sprint-ingressroute-https.yaml
   - admin-web-deployment.yaml
-  - admin-web-config.yaml
   - admin-web-ingressroute-https.yaml
   # portal 은 별도 레포(Team-Neki-Portal)로 분리 - argocd/apps/portal.yaml Application 이 관리
   # secret.yaml / sprint-secret.yaml / admin-web-secret.yaml 은 .gitignore 처리 - 민감 정보 별도 관리
@@ -31,4 +30,4 @@ resources:
 # 다르면 kustomize 가 바꿔칠 대상을 못 찾아 배포만 조용히 안 된다.
 images:
   - name: ghcr.io/team-neki/neki-admin-web
-    newTag: 0.1.0
+    newTag: 0.1.0-30ed22f

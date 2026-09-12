@@ -27,9 +27,8 @@ gitops-k3s/
     │   ├── monitoring.yaml         # Prometheus / Grafana / Loki / Promtail
     │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
     │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC)
-    │   ├── admin-web-config.yaml       # neki-admin-web 비민감 환경변수
     │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute
-    │   ├── admin-web-secret.example.yaml # Amplitude/오픈뱅킹 Secret 예시
+    │   ├── admin-web-secret.example.yaml # neki-admin-web 환경변수 예시
     │   ├── admin-web-secret.yaml       # ⚠️ gitignore - 직접 관리 필요
     │   └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
     └── staging/                    # 스테이징 환경 (namespace: staging)
@@ -141,9 +140,8 @@ standalone) 입니다. `prod` 네임스페이스에 있으므로 기존 `neki-pr
 | 구성요소 | 리소스 | 비고 |
 |---|---|---|
 | neki-admin-web | Deployment (replicas 1) / Service (ClusterIP 80→3000) | `ghcr.io/team-neki/neki-admin-web` |
-| (캐시) | PersistentVolumeClaim 1Gi (`local-path`) | Amplitude 일별 집계 SQLite, `/app/.data` 마운트 |
-| 설정 | ConfigMap `neki-admin-web-config` | 비민감 환경변수 |
-| 민감값 | Secret `neki-admin-web-secret` | ⚠️ gitignore - 직접 관리 |
+| (미사용) | PersistentVolumeClaim 1Gi (`local-path`) | `/app/.data` 마운트. 현재 앱이 쓰지 않음 |
+| 환경변수 | Secret `neki-admin-web-secret` | ConfigMap 없이 전부 여기. ⚠️ gitignore - 직접 관리 |
 
 접속: <https://admin-web.suitestudy.com:4641> (Traefik `websecure` 는 4641 포트)
 
@@ -157,18 +155,17 @@ GHCR 패키지는 `team-neki-workflow` 처럼 **공개(public)** 여야 합니�
 파드가 `ImagePullBackOff` 로 멈추므로, 그 경우에는 `dockerconfigjson` 타입 Secret 을
 만들고 `admin-web-deployment.yaml` 에 `imagePullSecrets` 를 추가해야 합니다.
 
-### replicas 를 올리면 안 되는 이유
+### PVC 와 `replicas: 1` / `Recreate`
 
-Amplitude 일별 집계 캐시를 SQLite 파일 하나에 쓰기 때문에 `replicas: 1` 고정이고,
-같은 이유로 `strategy` 는 `Recreate` 입니다. `local-path` PVC 는 `ReadWriteOnce` 이고
-노드 로컬이므로, `RollingUpdate` 로 두면 새 파드와 기존 파드가 겹치는 순간 같은
-볼륨을 동시에 붙잡습니다. 확장이 필요하면 앱의 `db/index.ts` 를 공유 DB adapter 로
-바꾼 뒤에 replicas 를 올립니다.
+원래는 Amplitude 일별 집계를 SQLite 파일 하나에 캐시했기 때문에 `replicas: 1` 고정,
+`strategy: Recreate` 였습니다. `local-path` PVC 는 `ReadWriteOnce` 이고 노드 로컬이라
+`RollingUpdate` 로 두면 새 파드와 기존 파드가 겹치는 순간 같은 볼륨을 동시에 붙잡기
+때문입니다.
 
-캐시 파일은 HTTP 로 노출되지 않습니다 (Next.js 는 `public/` 과 `.next/static/` 만 서빙).
-경로를 바꾸려면 ConfigMap 의 `NEKI_ADMIN_DATABASE_PATH` 와 `admin-web-deployment.yaml` 의
-`volumeMounts.mountPath` 를 함께 바꿔야 합니다. 한쪽만 바꾸면 파드는 정상 기동하고
-캐시만 PVC 밖에 생겨 재시작마다 사라집니다.
+Team-Neki-Admin 이 `75cf4f7` 에서 로컬 저장소를 걷어내고 관리자 API 프록시로 바뀌면서
+앱은 더 이상 `/app/.data` 에 아무것도 쓰지 않습니다. SQLite 의존성도 없습니다.
+지금 PVC·`fsGroup`·`Recreate` 는 근거를 잃은 상태로 남아 있고, 걷어낼지는 아직
+정하지 않았습니다. 그대로 둬도 동작에는 문제가 없습니다 (쓰지 않는 1Gi 볼륨이 붙을 뿐).
 
 ### Secret
 
@@ -178,11 +175,26 @@ Amplitude 일별 집계 캐시를 SQLite 파일 하나에 쓰기 때문에 `repl
 kubectl apply -f overlays/prod/admin-web-secret.yaml
 ```
 
-Amplitude 키 이름에 `NEKI_PROD_` 접두사가 붙는 점을 주의하세요. Team-Neki-Admin 의
-README 와 `.env.local.example` 은 `AMPLITUDE_API_KEY` / `AMPLITUDE_SECRET_KEY` 로 적고
-있지만, 실제 코드가 읽는 이름은 `NEKI_PROD_AMPLITUDE_API_KEY` /
-`NEKI_PROD_AMPLITUDE_SECRET_KEY` 이고 fallback 이 없습니다. 접두사 없이 넣으면 파드는
-정상 기동하고 대시보드만 "API 키 미설정" 안내로 뜹니다.
+ConfigMap 은 두지 않습니다. 비민감 값(`TZ` 등)까지 이 Secret 하나에 모으고,
+deployment 의 `envFrom` 도 `secretRef` 하나뿐입니다.
+
+앱이 실제로 읽는 이름은 아래가 전부입니다. 이 목록에 없는 이름을 넣어도 파드는
+정상 기동하고 화면만 비어서 원인이 드러나지 않으니, 값을 추가할 때는 코드에서
+그 이름을 읽는지 먼저 확인하세요.
+
+| 환경변수 | 읽는 곳 | 현재 |
+|---|---|---|
+| `NEKI_ADMIN_DASHBOARD_API_URL` | `app/api/amplitude/dashboard/route.ts` | 관리자 백엔드 미기동 - 넣지 않음 |
+| `NEKI_ADMIN_ANALYTICS_API_URL` | `app/api/amplitude/metrics/route.ts` | 관리자 백엔드 미기동 - 넣지 않음 |
+| `GROUP_ACCOUNT_DATA_MODE` | `app/api/group-account/group-account-server.ts` | 빈 값 (`mock` 은 개발 전용) |
+| `OPENBANKING_BASE_URL` | 〃 | 빈 값 |
+| `OPENBANKING_ACCESS_TOKEN` | 〃 | 빈 값 |
+| `OPENBANKING_FINTECH_USE_NUM` | 〃 | 빈 값 |
+| `OPENBANKING_BANK_TRAN_ID` | 〃 | 빈 값 |
+
+관리자 백엔드 URL 두 개가 비어 있는 동안 `/api/amplitude/*` 는 503
+`admin_api_not_configured` 로 응답하고 대시보드는 빈 채로 뜹니다. 백엔드가 뜨면
+Secret 에 두 URL 을 넣고 `kubectl apply` 후 파드를 재시작하면 됩니다.
 
 ### 남은 작업
 
@@ -236,7 +248,7 @@ kubectl apply -k overlays/prefect/
 | `overlays/prod/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/staging/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/prefect/secret.yaml` | Prefect DB 비밀번호 | 서버에서 직접 `kubectl apply` |
-| `overlays/prod/admin-web-secret.yaml` | Amplitude 조회 키, 오픈뱅킹 토큰 | 서버에서 직접 `kubectl apply` |
+| `overlays/prod/admin-web-secret.yaml` | neki-admin-web 환경변수 전체 | 서버에서 직접 `kubectl apply` |
 
 > TLS Secret(`tls-secret.yaml`)은 cert-manager의 Certificate로 대체되어 더 이상 사용하지 않습니다.
 
