@@ -36,7 +36,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: neki-admin-web
-          image: ghcr.io/team-neki/neki-admin-web:0.1.0-30ed22f
+          image: ghcr.io/team-neki/neki-admin-web:0.1.0-da093f7
           # 태그가 커밋마다 고유하므로 매번 pull 할 필요가 없다.
           imagePullPolicy: IfNotPresent
           ports:
