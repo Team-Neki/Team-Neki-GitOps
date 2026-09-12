@@ -183,23 +183,42 @@ kubectl apply -f overlays/prod/admin-web-secret.yaml
 ConfigMap 은 두지 않습니다. 비민감 값(`TZ` 등)까지 이 Secret 하나에 모으고,
 deployment 의 `envFrom` 도 `secretRef` 하나뿐입니다.
 
-앱이 실제로 읽는 이름은 아래가 전부입니다. 이 목록에 없는 이름을 넣어도 파드는
-정상 기동하고 화면만 비어서 원인이 드러나지 않으니, 값을 추가할 때는 코드에서
-그 이름을 읽는지 먼저 확인하세요.
+현재 넣어 둔 이름과 앱이 실제로 읽는 이름이 다릅니다. 관리자 백엔드와 오픈뱅킹
+OAuth 가 붙는 것을 전제로 미리 맞춰 둔 이름이라, 아래 표의 "앱이 읽나" 가 ✗ 인
+값들은 지금은 아무 효과가 없습니다. 값을 추가할 때는 코드가 그 이름을 읽는지
+먼저 확인하세요. 읽지 않는 이름은 파드를 정상 기동시킨 채 화면만 비게 만듭니다.
 
-| 환경변수 | 읽는 곳 | 현재 |
+**현재 Secret 에 들어 있는 값**
+
+| 환경변수 | 앱이 읽나 | 값 |
 |---|---|---|
-| `NEKI_ADMIN_DASHBOARD_API_URL` | `app/api/amplitude/dashboard/route.ts` | 관리자 백엔드 미기동 - 넣지 않음 |
-| `NEKI_ADMIN_ANALYTICS_API_URL` | `app/api/amplitude/metrics/route.ts` | 관리자 백엔드 미기동 - 넣지 않음 |
-| `GROUP_ACCOUNT_DATA_MODE` | `app/api/group-account/group-account-server.ts` | 빈 값 (`mock` 은 개발 전용) |
-| `OPENBANKING_BASE_URL` | 〃 | 빈 값 |
-| `OPENBANKING_ACCESS_TOKEN` | 〃 | 빈 값 |
-| `OPENBANKING_FINTECH_USE_NUM` | 〃 | 빈 값 |
-| `OPENBANKING_BANK_TRAN_ID` | 〃 | 빈 값 |
+| `TZ` | (Node 런타임) | `Asia/Seoul` |
+| `AMPLITUDE_API_KEY` | ✗ | 설정됨 |
+| `AMPLITUDE_SECRET_KEY` | ✗ | 설정됨 |
+| `AMPLITUDE_REGION` | ✗ | `us` |
+| `GROUP_ACCOUNT_DATA_MODE` | ✓ `app/api/group-account/group-account-server.ts` | `live` |
+| `OPENBANKING_BASE_URL` | ✓ 〃 | 설정됨 |
+| `OPENBANKING_CLIENT_ID` | ✗ | 설정됨 |
+| `OPENBANKING_CLIENT_SECRET` | ✗ | 설정됨 |
+| `OPENBANKING_REDIRECT_URI` | ✗ | 설정됨 |
+| `OPENBANKING_SCOPE` | ✗ | `login inquiry` |
+| `OPENBANKING_AUTH_TYPE` | ✗ | `0` |
+| `OPENBANKING_CLIENT_USE_CODE` | ✗ | 빈 값 |
 
-관리자 백엔드 URL 두 개가 비어 있는 동안 `/api/amplitude/*` 는 503
-`admin_api_not_configured` 로 응답하고 대시보드는 빈 채로 뜹니다. 백엔드가 뜨면
-Secret 에 두 URL 을 넣고 `kubectl apply` 후 파드를 재시작하면 됩니다.
+**앱이 읽지만 아직 넣지 않은 값**
+
+| 환경변수 | 읽는 곳 | 없을 때 동작 |
+|---|---|---|
+| `NEKI_ADMIN_DASHBOARD_API_URL` | `app/api/amplitude/dashboard/route.ts` | 503 `admin_api_not_configured` |
+| `NEKI_ADMIN_ANALYTICS_API_URL` | `app/api/amplitude/metrics/route.ts` | 503 `admin_api_not_configured` |
+| `OPENBANKING_ACCESS_TOKEN` | `group-account-server.ts` | 모임통장 "연결 전" 표시 |
+| `OPENBANKING_FINTECH_USE_NUM` | 〃 | 〃 |
+| `OPENBANKING_BANK_TRAN_ID` | 〃 | 〃 |
+
+그래서 지금 배포하면 대시보드는 빈 채로, 모임통장은 "계좌 연결 정보가 없습니다"
+로 뜹니다. 파드 자체는 정상입니다. 관리자 백엔드가 뜨면 URL 두 개를 Secret 에
+넣고 `kubectl apply` 후 `kubectl -n prod rollout restart deploy/neki-admin-web`
+하면 됩니다.
 
 ### 남은 작업
 
