@@ -1,0 +1,141 @@
+# Neki Admin (운영자 관리 페이지, Next.js standalone).
+#
+# 이미지 태그는 이 파일에 직접 적는다 (neki-prod / sprint / notification 과 같은 방식).
+# Team-Neki-Admin 의 빌드 워크플로가 아래 image 줄을 갱신하면 ArgoCD 가 롤링한다.
+#
+# 이 이미지는 반드시 한 곳에서만 참조한다. 같은 이미지를 여러 줄에 적으면 갱신에서
+# 하나를 놓쳤을 때 컨테이너마다 버전이 갈리고, 파드는 정상 기동해서 드러나지 않는다.
+#
+# replicas 는 1 고정이다. Amplitude 일별 집계 캐시를 SQLite 파일 하나(PVC)에
+# 쓰기 때문에 여러 파드가 같은 파일을 잡으면 안 된다. 확장이 필요해지면 앱의
+# db/index.ts 를 공유 DB adapter 로 바꾼 뒤에 replicas 를 올려야 한다.
+# 같은 이유로 strategy 는 Recreate 다. RollingUpdate 면 새 파드가 기존 파드와
+# 겹치는 순간 local-path PVC(ReadWriteOnce, 노드 로컬)를 동시에 붙잡는다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neki-admin-web
+  namespace: prod
+  labels:
+    app: neki-admin-web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: neki-admin-web
+  template:
+    metadata:
+      labels:
+        app: neki-admin-web
+    spec:
+      automountServiceAccountToken: false
+      # PVC 디렉토리를 컨테이너의 nextjs(1001:1001) 가 쓸 수 있게 한다.
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: neki-admin-web
+          image: ghcr.io/team-neki/neki-admin-web:0.1.0-30ed22f
+          # 태그가 커밋마다 고유하므로 매번 pull 할 필요가 없다.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          # ConfigMap 은 두지 않는다. 비민감 값까지 Secret 하나로 모았다.
+          envFrom:
+            - secretRef:
+                name: neki-admin-web-secret
+          # 앱에 전용 health 엔드포인트가 없다. liveness 는 프로세스가 포트를
+          # 잡고 있는지만 보고, readiness 만 실제로 "/" 를 그린다. "/" 는 antd
+          # 어드민 화면 전체를 SSR 하므로 주기를 30s 로 길게 둔다.
+          # Team-Neki-Admin 에 /api/health 가 추가되면 둘 다 그쪽으로 옮긴다.
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            # 현재 앱은 이 경로에 아무것도 쓰지 않는다. Amplitude 집계를 SQLite 로
+            # 캐시하던 시절의 마운트인데, 앱이 관리자 API 프록시로 바뀌면서
+            # (Team-Neki-Admin 75cf4f7) 로컬 저장소가 사라졌다. 볼륨을 계속 둘지는
+            # 아직 정하지 않았다.
+            - name: data
+              mountPath: /app/.data
+            # Next.js 가 런타임에 .next/cache 를 쓴다. 이미지 레이어에 쓰지 않도록 분리.
+            - name: cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: neki-admin-web-data
+        - name: cache
+          emptyDir: {}
+      terminationGracePeriodSeconds: 30
+---
+# k3s 기본 local-path provisioner 를 쓴다. 볼륨이 노드 로컬 디스크이므로 파드는
+# 이 PV 가 만들어진 노드에 묶인다(현재 단일 노드라 문제 없음).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neki-admin-web-data
+  namespace: prod
+  labels:
+    app: neki-admin-web
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neki-admin-web-service
+  namespace: prod
+  labels:
+    app: neki-admin-web
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: neki-admin-web

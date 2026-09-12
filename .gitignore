@@ -6,6 +6,8 @@
 **/secret.yaml
 # Sprint 앱 실제 Secret (예시는 sprint-secret.example.yaml 커밋)
 **/sprint-secret.yaml
+# Neki Admin 실제 Secret (예시는 admin-web-secret.example.yaml 커밋)
+**/admin-web-secret.yaml
 
 # 수동으로 관리하던 TLS Secret (cert-manager로 대체됨, 하위 호환 제외)
 **/tls-secret.yaml

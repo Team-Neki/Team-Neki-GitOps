@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: admin-web-ingressroute-https
+  namespace: prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`admin-web.suitestudy.com`)
+      kind: Rule
+      services:
+        - name: neki-admin-web-service
+          port: 80
+  tls:
+    secretName: admin-web-tls-cert

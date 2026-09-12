@@ -26,6 +26,10 @@ gitops-k3s/
     │   ├── certificate.yaml        # cert-manager TLS 인증서 요청
     │   ├── monitoring.yaml         # Prometheus / Grafana / Loki / Promtail
     │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
+    │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC)
+    │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute
+    │   ├── admin-web-secret.example.yaml # neki-admin-web 환경변수 예시
+    │   ├── admin-web-secret.yaml       # ⚠️ gitignore - 직접 관리 필요
     │   └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
     └── staging/                    # 스테이징 환경 (namespace: staging)
         ├── kustomization.yaml
@@ -100,6 +104,7 @@ kubectl apply -f cluster/coredns/coredns-hairpin-nat.yaml
 |------|--------|------------|
 | prod | `yapp.suitestudy.com` | prod |
 | prod (모니터링) | `yapp-monitoring.suitestudy.com` | prod |
+| prod (어드민) | `admin-web.suitestudy.com` | prod |
 | staging | `dev-yapp.suitestudy.com` | staging |
 
 ### TLS 인증서
@@ -111,6 +116,7 @@ cert-manager가 Let's Encrypt에서 인증서를 발급받아 Secret으로 자�
 |------|----------------|---------------|
 | prod | `neki-tls-cert` | `neki-tls-cert` |
 | prod | `yapp-monitoring-tls-cert` | `yapp-monitoring-tls-cert` |
+| prod | `admin-web-tls-cert` | `admin-web-tls-cert` |
 | staging | `dev-yapp-tls-cert` | `dev-yapp-tls-cert` |
 
 IngressRoute에서 `tls.secretName`으로 이 Secret을 참조합니다.
@@ -124,6 +130,104 @@ kubectl apply -k overlays/prod/
 # staging 전체 적용
 kubectl apply -k overlays/staging/
 ```
+
+## Neki Admin (`overlays/prod/admin-web-*.yaml`)
+
+[Team-Neki-Admin](https://github.com/Team-Neki/Team-Neki-Admin) 의 운영자 관리 페이지(Next.js
+standalone) 입니다. `prod` 네임스페이스에 있으므로 기존 `neki-prod` ArgoCD Application 이
+그대로 동기화합니다. 별도 Application 은 없습니다.
+
+| 구성요소 | 리소스 | 비고 |
+|---|---|---|
+| neki-admin-web | Deployment (replicas 1) / Service (ClusterIP 80→3000) | `ghcr.io/team-neki/neki-admin-web` |
+| (미사용) | PersistentVolumeClaim 1Gi (`local-path`) | `/app/.data` 마운트. 현재 앱이 쓰지 않음 |
+| 환경변수 | Secret `neki-admin-web-secret` | ConfigMap 없이 전부 여기. ⚠️ gitignore - 직접 관리 |
+
+접속: <https://admin-web.suitestudy.com:4641> (Traefik `websecure` 는 4641 포트)
+
+### 이미지
+
+태그는 `overlays/prod/admin-web-deployment.yaml` 의 `image:` 줄에 직접 적습니다.
+`neki-prod` / `sprint` / `notification` 과 같은 방식이고, Team-Neki-Admin 의 빌드
+워크플로가 그 줄을 갱신하면 ArgoCD 가 롤링합니다.
+
+이미지는 한 곳에서만 참조합니다. `sprint-deployment.yaml` 처럼 같은 이미지를 여러
+줄에 적으면 갱신에서 하나를 놓쳤을 때 컨테이너마다 버전이 갈리는데, 파드는 정상
+기동하므로 드러나지 않습니다. 워크플로는 갱신 전후의 참조 개수를 비교해 이 경우를
+막습니다.
+
+GHCR 패키지는 `team-neki-workflow` 처럼 **공개(public)** 여야 합니다. 비공개로 두면
+파드가 `ImagePullBackOff` 로 멈추므로, 그 경우에는 `dockerconfigjson` 타입 Secret 을
+만들고 `admin-web-deployment.yaml` 에 `imagePullSecrets` 를 추가해야 합니다.
+
+### PVC 와 `replicas: 1` / `Recreate`
+
+원래는 Amplitude 일별 집계를 SQLite 파일 하나에 캐시했기 때문에 `replicas: 1` 고정,
+`strategy: Recreate` 였습니다. `local-path` PVC 는 `ReadWriteOnce` 이고 노드 로컬이라
+`RollingUpdate` 로 두면 새 파드와 기존 파드가 겹치는 순간 같은 볼륨을 동시에 붙잡기
+때문입니다.
+
+Team-Neki-Admin 이 `75cf4f7` 에서 로컬 저장소를 걷어내고 관리자 API 프록시로 바뀌면서
+앱은 더 이상 `/app/.data` 에 아무것도 쓰지 않습니다. SQLite 의존성도 없습니다.
+지금 PVC·`fsGroup`·`Recreate` 는 근거를 잃은 상태로 남아 있고, 걷어낼지는 아직
+정하지 않았습니다. 그대로 둬도 동작에는 문제가 없습니다 (쓰지 않는 1Gi 볼륨이 붙을 뿐).
+
+### Secret
+
+`admin-web-secret.example.yaml` 을 `admin-web-secret.yaml` 로 복사해 값을 채우고 직접 apply 합니다.
+
+```bash
+kubectl apply -f overlays/prod/admin-web-secret.yaml
+```
+
+ConfigMap 은 두지 않습니다. 비민감 값(`TZ` 등)까지 이 Secret 하나에 모으고,
+deployment 의 `envFrom` 도 `secretRef` 하나뿐입니다.
+
+현재 넣어 둔 이름과 앱이 실제로 읽는 이름이 다릅니다. 관리자 백엔드와 오픈뱅킹
+OAuth 가 붙는 것을 전제로 미리 맞춰 둔 이름이라, 아래 표의 "앱이 읽나" 가 ✗ 인
+값들은 지금은 아무 효과가 없습니다. 값을 추가할 때는 코드가 그 이름을 읽는지
+먼저 확인하세요. 읽지 않는 이름은 파드를 정상 기동시킨 채 화면만 비게 만듭니다.
+
+**현재 Secret 에 들어 있는 값**
+
+| 환경변수 | 앱이 읽나 | 값 |
+|---|---|---|
+| `TZ` | (Node 런타임) | `Asia/Seoul` |
+| `AMPLITUDE_API_KEY` | ✗ | 설정됨 |
+| `AMPLITUDE_SECRET_KEY` | ✗ | 설정됨 |
+| `AMPLITUDE_REGION` | ✗ | `us` |
+| `GROUP_ACCOUNT_DATA_MODE` | ✓ `app/api/group-account/group-account-server.ts` | `live` |
+| `OPENBANKING_BASE_URL` | ✓ 〃 | 설정됨 |
+| `OPENBANKING_CLIENT_ID` | ✗ | 설정됨 |
+| `OPENBANKING_CLIENT_SECRET` | ✗ | 설정됨 |
+| `OPENBANKING_REDIRECT_URI` | ✗ | 설정됨 |
+| `OPENBANKING_SCOPE` | ✗ | `login inquiry` |
+| `OPENBANKING_AUTH_TYPE` | ✗ | `0` |
+| `OPENBANKING_CLIENT_USE_CODE` | ✗ | 빈 값 |
+
+**앱이 읽지만 아직 넣지 않은 값**
+
+| 환경변수 | 읽는 곳 | 없을 때 동작 |
+|---|---|---|
+| `NEKI_ADMIN_DASHBOARD_API_URL` | `app/api/amplitude/dashboard/route.ts` | 503 `admin_api_not_configured` |
+| `NEKI_ADMIN_ANALYTICS_API_URL` | `app/api/amplitude/metrics/route.ts` | 503 `admin_api_not_configured` |
+| `OPENBANKING_ACCESS_TOKEN` | `group-account-server.ts` | 모임통장 "연결 전" 표시 |
+| `OPENBANKING_FINTECH_USE_NUM` | 〃 | 〃 |
+| `OPENBANKING_BANK_TRAN_ID` | 〃 | 〃 |
+
+그래서 지금 배포하면 대시보드는 빈 채로, 모임통장은 "계좌 연결 정보가 없습니다"
+로 뜹니다. 파드 자체는 정상입니다. 관리자 백엔드가 뜨면 URL 두 개를 Secret 에
+넣고 `kubectl apply` 후 `kubectl -n prod rollout restart deploy/neki-admin-web`
+하면 됩니다.
+
+### 남은 작업
+
+- **앱 인증 없음.** 현재 어드민에는 자체 로그인이 없어 도메인을 아는 누구나 접근할 수
+  있습니다. 앱에 로그인을 붙이거나, Traefik `basicAuth` / `ipAllowList` 미들웨어를
+  `admin-web-ingressroute-https.yaml` 에 추가해야 합니다.
+- **health 엔드포인트 없음.** `/api/health` 가 없어 readiness 가 `/` 를 SSR 합니다.
+  주기를 30s 로 늘려 부담을 줄였지만, 앱에 `/api/health` 가 추가되면 probe 를 그쪽으로
+  옮기는 편이 낫습니다.
 
 ## Prefect (`overlays/prefect/`)
 
@@ -168,6 +272,7 @@ kubectl apply -k overlays/prefect/
 | `overlays/prod/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/staging/secret.yaml` | jasypt 암호화 키 | 서버에서 직접 `kubectl apply` |
 | `overlays/prefect/secret.yaml` | Prefect DB 비밀번호 | 서버에서 직접 `kubectl apply` |
+| `overlays/prod/admin-web-secret.yaml` | neki-admin-web 환경변수 전체 | 서버에서 직접 `kubectl apply` |
 
 > TLS Secret(`tls-secret.yaml`)은 cert-manager의 Certificate로 대체되어 더 이상 사용하지 않습니다.
 
@@ -186,6 +291,7 @@ kubectl apply -f cluster/cert-manager/cluster-issuer.yaml
 # 3. App Secret 적용 (gitignore 파일 - 직접 관리)
 kubectl apply -f overlays/prod/secret.yaml
 kubectl apply -f overlays/staging/secret.yaml
+kubectl apply -f overlays/prod/admin-web-secret.yaml
 
 # 4. 환경별 리소스 적용
 kubectl apply -k overlays/prod/
