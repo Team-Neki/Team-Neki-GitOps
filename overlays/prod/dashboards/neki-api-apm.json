@@ -43,6 +43,13 @@
       "targetBlank": false
     },
     {
+      "title": "엔드포인트 상세",
+      "url": "/d/neki-api-endpoint?${__url_time_range}",
+      "type": "link",
+      "icon": "search",
+      "targetBlank": false
+    },
+    {
       "title": "Observability (로그)",
       "url": "/d/observability-dashboard?${__url_time_range}",
       "type": "link",
@@ -549,7 +556,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": []
         },
         "overrides": [
           {
@@ -697,7 +705,13 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -792,7 +806,13 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -882,7 +902,13 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -971,7 +997,13 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -1061,7 +1093,13 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -1106,8 +1144,8 @@
     {
       "id": 16,
       "type": "table",
-      "title": "엔드포인트별 요약 — 클릭하면 해당 엔드포인트로 필터",
-      "description": "선택한 기간 전체 기준. 요청 수 내림차순. 행을 클릭하면 uri 변수가 그 엔드포인트로 바뀐다",
+      "title": "엔드포인트별 요약 — 행을 클릭하면 상세 화면 (요청 목록·로그)",
+      "description": "선택한 기간 전체 기준. 요청 수 내림차순. 행을 클릭하면 엔드포인트 상세 대시보드로 이동 (개별 요청 목록과 로그)",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -1141,8 +1179,8 @@
           "noValue": "0",
           "links": [
             {
-              "title": "이 엔드포인트만 보기",
-              "url": "/d/neki-api-apm?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&${uri_exclude:queryparam}&var-method=${__data.fields.메서드}&var-uri=${__data.fields.엔드포인트}"
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__data.fields.메서드}&var-uri=${__data.fields.엔드포인트}"
             }
           ]
         },
@@ -1605,6 +1643,12 @@
               }
             ]
           },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ],
           "decimals": 0
         },
         "overrides": []
@@ -1680,6 +1724,12 @@
               }
             ]
           },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ],
           "decimals": 3
         },
         "overrides": []
@@ -1747,6 +1797,12 @@
               }
             ]
           },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ],
           "decimals": 0
         },
         "overrides": []
@@ -1853,7 +1909,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": []
         },
         "overrides": []
       },
@@ -1940,7 +1997,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": []
         },
         "overrides": []
       },
@@ -2027,7 +2085,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": []
         },
         "overrides": []
       },
@@ -2101,6 +2160,7 @@
               }
             ]
           },
+          "links": [],
           "decimals": 0
         },
         "overrides": []
@@ -2194,7 +2254,13 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+            }
+          ]
         },
         "overrides": []
       },
@@ -2281,7 +2347,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "links": []
         },
         "overrides": []
       },
@@ -2380,7 +2447,8 @@
                     "value": null
                   }
                 ]
-              }
+              },
+              "links": []
             },
             "overrides": []
           },
@@ -2490,7 +2558,13 @@
                     "value": null
                   }
                 ]
-              }
+              },
+              "links": [
+                {
+                  "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+                  "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+                }
+              ]
             },
             "overrides": []
           },

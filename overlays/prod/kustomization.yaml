@@ -31,6 +31,7 @@ configMapGenerator:
       - dashboards/observability-dashboard.json
       - dashboards/spring-boot-dashboard.json
       - dashboards/neki-api-apm.json
+      - dashboards/neki-api-endpoint.json
 
 generatorOptions:
   disableNameSuffixHash: true
