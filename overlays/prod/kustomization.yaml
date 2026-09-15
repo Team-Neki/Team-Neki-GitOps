@@ -22,3 +22,15 @@ resources:
   # tls-secret.yaml 은 cert-manager Certificate로 대체됨 (deprecated)
   # - tls-secret.yaml
 
+# Grafana 대시보드 JSON → ConfigMap grafana-dashboards (Grafana 가 /var/lib/grafana/dashboards 로 마운트)
+# 대시보드를 추가/수정하려면 dashboards/*.json 을 고치고 여기 목록에 넣는다
+configMapGenerator:
+  - name: grafana-dashboards
+    namespace: prod
+    files:
+      - dashboards/observability-dashboard.json
+      - dashboards/spring-boot-dashboard.json
+      - dashboards/neki-api-apm.json
+
+generatorOptions:
+  disableNameSuffixHash: true
