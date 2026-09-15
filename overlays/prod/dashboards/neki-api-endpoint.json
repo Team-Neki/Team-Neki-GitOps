@@ -777,8 +777,8 @@
       "title": "응답시간 — 평균(메트릭) · p50/p95/p99(로그, 5분 창)",
       "description": "avg 는 Micrometer rate(sum)/rate(count). p50/p95/p99 는 요청 로그 durationMs 의 5분 이동 창 백분위",
       "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
+        "type": "datasource",
+        "uid": "-- Mixed --"
       },
       "gridPos": {
         "h": 8,
