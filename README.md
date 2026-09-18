@@ -254,8 +254,11 @@ flow 코드에서 접속할 때(클러스터 내부): `PREFECT_API_URL=http://pr
 
 `overlays/prefect/secret.yaml` (gitignore) 에 호스트 DB `prefect` role 의 비밀번호가 있습니다(Secret `prefect-db`). `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 호스트 DB 에 role/database 를 만드는 방법은 `secret.example.yaml` 주석을 참고하세요.
 
+flow 가 바깥(Kakao, 앱 DB)에 붙을 때 쓰는 값은 별도 Secret `prefect-workflow` 입니다(`overlays/prefect/workflow-secret.yaml`, gitignore). `workflow-secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 이 값은 worker 가 아니라 flow run Job 파드가 읽으므로 `worker-base-job-template.json` 의 `envFrom` 이 이 Secret 을 참조합니다. **Secret 이 없으면 flow run Job 파드가 `CreateContainerConfigError` 로 뜨지 않습니다.** 키를 추가할 때는 example 파일도 같이 갱신하세요.
+
 ```bash
 kubectl apply -f overlays/prefect/secret.yaml
+kubectl apply -f overlays/prefect/workflow-secret.yaml
 kubectl apply -k overlays/prefect/
 ```
 
