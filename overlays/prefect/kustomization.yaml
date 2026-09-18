@@ -9,6 +9,9 @@ resources:
 # Kubernetes work pool 의 base job template
 # - 원본: prefect work-pool get-default-base-job-template --type kubernetes
 # - 수정: namespace 기본값 default → prefect, finished_job_ttl 기본값 null → 86400 (완료 Job 1일 후 자동 정리)
+# - 수정: 컨테이너에 envFrom secretRef prefect-workflow 추가. flow 가 쓰는 KAKAO_API_KEY, DATABASE_URL 등은
+#   worker 가 아니라 flow run Job 파드가 읽으므로 여기서 걸어야 한다 (workflow-secret.example.yaml 참고).
+#   Secret 이 없으면 Job 파드가 CreateContainerConfigError 로 뜨지 않는다. 조용히 빈 값으로 돌지 않게 의도한 것
 # - prefect-worker 가 기동 시 이 ConfigMap 을 work pool 에 동기화함 (worker.yaml 의 initContainer)
 configMapGenerator:
   - name: prefect-worker-base-job-template

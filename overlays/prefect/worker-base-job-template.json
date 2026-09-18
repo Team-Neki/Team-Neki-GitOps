@@ -24,6 +24,13 @@
               {
                 "args": "{{ command }}",
                 "env": "{{ env }}",
+                "envFrom": [
+                  {
+                    "secretRef": {
+                      "name": "prefect-workflow"
+                    }
+                  }
+                ],
                 "image": "{{ image }}",
                 "imagePullPolicy": "{{ image_pull_policy }}",
                 "name": "prefect-job",
