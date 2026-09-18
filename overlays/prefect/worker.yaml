@@ -4,8 +4,10 @@
 #   flows 가 없어 flow run 이 ModuleNotFoundError 로 죽는다
 # - flow run 은 prefect 네임스페이스에 Job 으로 생성됨 (worker-base-job-template.json 의 namespace 기본값)
 # - Role/RoleBinding 은 prefect 네임스페이스 안에서 Job/Pod 를 다룰 최소 권한
-# 업그레이드: 이미지 태그는 Team-Neki-Workflow 의 build.yml 이 kustomization.yaml 의
-# newTag 로 갱신한다. 여기서 직접 고치지 않는다
+# 업그레이드: 이미지 태그는 Team-Neki-Workflow 의 build.yml 이 main merge 마다 이 파일의
+# `image: ghcr.io/team-neki/team-neki-workflow:<tag>` 줄을 전부 같은 태그로 갱신한다
+# (admin-web-deployment.yaml 과 같은 방식). 여기서 직접 고치지 않는다.
+# register-deployments initContainer 와 prefect-worker 컨테이너는 항상 같은 태그여야 한다.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -125,7 +127,7 @@ spec:
         # 앞 initContainer 가 API 가 응답할 때까지 기다린 뒤에만 성공하므로
         # 여기서 다시 기다리지 않는다. 순서를 바꾸면 대기를 옮겨야 한다.
         - name: register-deployments
-          image: ghcr.io/team-neki/team-neki-workflow
+          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-87fd79e
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
@@ -167,7 +169,7 @@ spec:
               subPathExpr: tmp
       containers:
         - name: prefect-worker
-          image: ghcr.io/team-neki/team-neki-workflow
+          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-87fd79e
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/tini", "-g", "--", "/opt/prefect/entrypoint.sh"]
           args:
