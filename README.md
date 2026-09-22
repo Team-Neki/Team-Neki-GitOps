@@ -260,10 +260,12 @@ flow 가 바깥(Kakao, 앱 DB, S3)에 붙을 때 쓰는 값은 별도 Secret `pr
 |---|---|---|
 | `KAKAO_API_KEY` | 지점 수집 (picdot 등 Kakao 수집원 브랜드, 좌표 보정) | Kakao 수집원 브랜드는 실패, 나머지는 좌표 보정 건너뜀 |
 | `DATABASE_URL` | `legal-dong` (법정동 코드), `subway-station` (지하철 역). 앱 DB 에 직접 적재 | flow 가 시작 직후 `RuntimeError` 로 실패 |
-| `S3_BUCKET` | 지점 수집 (`stores-collect`, 브랜드별 `*-stores`). 수집 결과를 S3 `raw/` `collect/` `runs/` 에 적재 | 적재 시점에 `RuntimeError` 로 실패 |
+| `S3_BUCKET` | 지점 수집 (`stores-collect`, 브랜드별 `*-stores`). 수집 결과를 S3 `raw/` `collect/` `runs/` 에 적재. 환경 접두를 붙인 `staging-team-neki-workflow` 또는 `prod-team-neki-workflow` | 적재 시점에 `RuntimeError` 로 실패 |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` | 지점 수집. boto3 기본 자격증명 체인이 집어감. IAM role 없음 | S3 PUT 에서 `NoCredentialsError` 로 실패 |
 
-S3 자격증명의 IAM 사용자에는 버킷의 `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` 이 있어야 합니다. 최신 파티션을 목록 조회로 찾고 실패한 브랜드를 이전 파티션으로 대신하므로 쓰기만으로는 부족합니다. `AWS_PROFILE`, `AWS_ENDPOINT_URL` 은 로컬 LocalStack 용이므로 넣지 않습니다.
+k3s 에서는 LocalStack 을 쓰지 않고 실제 S3 만 씁니다. 버킷은 `staging-team-neki-workflow`, `prod-team-neki-workflow` 둘을 만들어 두고, Prefect 가 단일 인스턴스라 `S3_BUCKET` 값 하나가 이 클러스터의 flow 가 어느 환경에 쓰는지를 정합니다. `DATABASE_URL` 이 가리키는 앱 DB 와 같은 환경이어야 합니다.
+
+S3 자격증명의 IAM 사용자에는 두 버킷의 `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` 이 있어야 합니다. 최신 파티션을 목록 조회로 찾고 실패한 브랜드를 이전 파티션으로 대신하므로 쓰기만으로는 부족합니다. `AWS_PROFILE`, `AWS_ENDPOINT_URL` 은 로컬 LocalStack 용이므로 넣지 않습니다.
 
 `DATABASE_URL` 은 파드에서 붙으므로 호스트를 `localhost` 로 적으면 안 됩니다. 노드 IP 또는 클러스터 Service 주소를 씁니다. 대상은 Prefect 메타DB(`prefect-db`)가 아니라 Team-Neki-Server 가 쓰는 앱 DB 입니다.
 
