@@ -254,12 +254,16 @@ flow 코드에서 접속할 때(클러스터 내부): `PREFECT_API_URL=http://pr
 
 `overlays/prefect/secret.yaml` (gitignore) 에 호스트 DB `prefect` role 의 비밀번호가 있습니다(Secret `prefect-db`). `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 호스트 DB 에 role/database 를 만드는 방법은 `secret.example.yaml` 주석을 참고하세요.
 
-flow 가 바깥(Kakao, 앱 DB)에 붙을 때 쓰는 값은 별도 Secret `prefect-workflow` 입니다(`overlays/prefect/workflow-secret.yaml`, gitignore). `workflow-secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 이 값은 worker 가 아니라 flow run Job 파드가 읽으므로 `worker-base-job-template.json` 의 `envFrom` 이 이 Secret 을 참조합니다. **Secret 이 없으면 flow run Job 파드가 `CreateContainerConfigError` 로 뜨지 않습니다.** 키를 추가할 때는 example 파일도 같이 갱신하세요.
+flow 가 바깥(Kakao, 앱 DB, S3)에 붙을 때 쓰는 값은 별도 Secret `prefect-workflow` 입니다(`overlays/prefect/workflow-secret.yaml`, gitignore). `workflow-secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 이 값은 worker 가 아니라 flow run Job 파드가 읽으므로 `worker-base-job-template.json` 의 `envFrom` 이 이 Secret 을 참조합니다. **Secret 이 없으면 flow run Job 파드가 `CreateContainerConfigError` 로 뜨지 않습니다.** 키를 추가할 때는 example 파일도 같이 갱신하세요.
 
 | 키 | 쓰는 flow | 없으면 |
 |---|---|---|
 | `KAKAO_API_KEY` | 지점 수집 (picdot 등 Kakao 수집원 브랜드, 좌표 보정) | Kakao 수집원 브랜드는 실패, 나머지는 좌표 보정 건너뜀 |
 | `DATABASE_URL` | `legal-dong` (법정동 코드), `subway-station` (지하철 역). 앱 DB 에 직접 적재 | flow 가 시작 직후 `RuntimeError` 로 실패 |
+| `S3_BUCKET` | 지점 수집 (`stores-collect`, 브랜드별 `*-stores`). 수집 결과를 S3 `raw/` `collect/` `runs/` 에 적재 | 적재 시점에 `RuntimeError` 로 실패 |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` | 지점 수집. boto3 기본 자격증명 체인이 집어감. IAM role 없음 | S3 PUT 에서 `NoCredentialsError` 로 실패 |
+
+S3 자격증명의 IAM 사용자에는 버킷의 `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` 이 있어야 합니다. 최신 파티션을 목록 조회로 찾고 실패한 브랜드를 이전 파티션으로 대신하므로 쓰기만으로는 부족합니다. `AWS_PROFILE`, `AWS_ENDPOINT_URL` 은 로컬 LocalStack 용이므로 넣지 않습니다.
 
 `DATABASE_URL` 은 파드에서 붙으므로 호스트를 `localhost` 로 적으면 안 됩니다. 노드 IP 또는 클러스터 Service 주소를 씁니다. 대상은 Prefect 메타DB(`prefect-db`)가 아니라 Team-Neki-Server 가 쓰는 앱 DB 입니다.
 
