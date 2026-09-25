@@ -127,7 +127,7 @@ spec:
         # 앞 initContainer 가 API 가 응답할 때까지 기다린 뒤에만 성공하므로
         # 여기서 다시 기다리지 않는다. 순서를 바꾸면 대기를 옮겨야 한다.
         - name: register-deployments
-          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-1f37b28
+          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-a6cfffe
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
@@ -169,7 +169,7 @@ spec:
               subPathExpr: tmp
       containers:
         - name: prefect-worker
-          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-1f37b28
+          image: ghcr.io/team-neki/team-neki-workflow:0.1.1-a6cfffe
           imagePullPolicy: IfNotPresent
           command: ["/usr/bin/tini", "-g", "--", "/opt/prefect/entrypoint.sh"]
           args:
