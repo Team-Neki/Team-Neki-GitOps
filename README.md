@@ -313,3 +313,11 @@ kubectl apply -f overlays/prod/admin-web-secret.yaml
 kubectl apply -k overlays/prod/
 kubectl apply -k overlays/staging/
 ```
+
+## Spring Batch 이미지 배포
+
+Server의 `Deploy Batch (GHCR + GitOps)`를 main에서 수동 실행한다. 워크플로는 `overlays/prefect/images.env`의 `NEKI_BATCH_IMAGE`를 GHCR의 버전-SHA 태그로 갱신한다. 이 값은 prefect 네임스페이스의 고정 이름 ConfigMap `neki-images`로 생성되며, Prefect flow Job이 `envFrom`으로 읽는다. 별도의 상주 batch Deployment를 만들지 않는다.
+
+초기 `:main` 값은 첫 배포 전 자리표시자다. 최초 이미지 게시와 GitOps 태그 갱신을 완료한 뒤 배치를 호출한다. 배치 이미지는 pull secret을 사용하지 않으므로 GHCR 패키지를 public으로 제공해야 한다. API가 먼저 배포되어 배치 메타 테이블 마이그레이션이 적용되어 있어야 한다.
+
+Job 템플릿 ConfigMap에는 내용 해시를 적용해 변경 시 worker의 볼륨 참조와 Pod가 갱신되고 initContainer가 work pool 템플릿을 다시 동기화한다. 이미지 태그 ConfigMap은 고정 이름을 유지하므로 이후 태그 변경만으로 worker를 재기동할 필요는 없다. 실행 중인 flow Job의 환경은 바뀌지 않으며 다음 Job부터 새 값을 읽는다.

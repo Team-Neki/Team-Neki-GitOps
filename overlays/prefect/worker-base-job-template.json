@@ -29,6 +29,11 @@
                     "secretRef": {
                       "name": "prefect-workflow"
                     }
+                  },
+                  {
+                    "configMapRef": {
+                      "name": "neki-images"
+                    }
                   }
                 ],
                 "image": "{{ image }}",
