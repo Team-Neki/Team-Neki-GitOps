@@ -155,7 +155,7 @@
             "type": "null"
           }
         ],
-        "default": null,
+        "default": "prefect-worker",
         "description": "The Kubernetes service account to use for job creation.",
         "title": "Service Account Name"
       },
