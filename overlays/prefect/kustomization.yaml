@@ -12,6 +12,8 @@ resources:
 # - 수정: 컨테이너에 envFrom secretRef prefect-workflow 추가. flow 가 쓰는 KAKAO_API_KEY, DATABASE_URL 등은
 #   worker 가 아니라 flow run Job 파드가 읽으므로 여기서 걸어야 한다 (workflow-secret.example.yaml 참고).
 #   Secret 이 없으면 Job 파드가 CreateContainerConfigError 로 뜨지 않는다. 조용히 빈 값으로 돌지 않게 의도한 것
+# - 수정: service_account_name 기본값 null → prefect-worker. search-index flow 는 flow run 파드 안에서 k8s Job 을
+#   만들고 pods/log 를 읽는다. null 이면 default SA 로 떠서 jobs 생성이 403 Forbidden(ApiException)으로 실패한다
 # - template ConfigMap은 내용 해시를 이름에 포함해 변경 시 worker를 재기동하고 work pool에 동기화함
 # - neki-images는 고정 이름으로 유지해 다음 flow Job에서 최신 태그를 읽도록 함
 configMapGenerator:
