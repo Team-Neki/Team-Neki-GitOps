@@ -259,7 +259,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -272,7 +272,9 @@
           "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -397,7 +399,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -410,7 +412,9 @@
           "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -468,7 +472,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -481,7 +485,9 @@
           "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
