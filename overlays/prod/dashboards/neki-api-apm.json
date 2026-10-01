@@ -259,7 +259,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -269,10 +269,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -397,7 +399,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -407,10 +409,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -468,7 +472,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -478,10 +482,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -837,7 +843,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / sum by (method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0)",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code"
@@ -1507,7 +1513,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) / sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) * 100",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "D",
           "legendFormat": "",
           "editorMode": "code",
@@ -1533,7 +1539,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
           "refId": "F",
           "legendFormat": "",
           "editorMode": "code",
@@ -1756,7 +1762,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])))",
+          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code",
@@ -2020,7 +2026,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0)",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"

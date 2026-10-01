@@ -235,7 +235,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -245,10 +245,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\", status=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\", status=~\"5..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -306,7 +308,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -316,10 +318,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\", status=~\"4..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\", status=~\"4..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -377,7 +381,7 @@
         "orientation": "auto",
         "textMode": "auto",
         "colorMode": "background",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
       },
@@ -387,10 +391,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) > 0)",
           "refId": "A",
           "legendFormat": "",
-          "editorMode": "code"
+          "editorMode": "code",
+          "instant": true,
+          "range": false
         }
       ]
     },
@@ -893,7 +899,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0)",
           "refId": "A",
           "legendFormat": "avg (metric)",
           "editorMode": "code"
@@ -1248,7 +1254,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0)",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
