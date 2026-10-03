@@ -116,7 +116,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
       "id": 5,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "system_cpu_usage{pod=~\"$pod\"} * 100", "legendFormat": "{{pod}}", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "system_cpu_usage{pod=~\"$pod\"} * 100 and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}}", "refId": "A" }],
       "title": "CPU 사용률",
       "type": "timeseries"
     },
@@ -136,8 +136,8 @@
       "id": 6,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"}", "legendFormat": "{{pod}} - Used", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"}", "legendFormat": "{{pod}} - Max", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"} and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Used", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"} and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Max", "refId": "B" }
       ],
       "title": "JVM Heap 메모리",
       "type": "timeseries"
@@ -157,7 +157,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
       "id": 7,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "sum by (pod) (rate(http_server_requests_seconds_count{pod=~\"$pod\"}[1m]))", "legendFormat": "{{pod}}", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "sum by (pod) (rate(http_server_requests_seconds_count{pod=~\"$pod\"}[1m])) and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}}", "refId": "A" }],
       "title": "HTTP 요청률 (RPS)",
       "type": "timeseries"
     },
@@ -176,7 +176,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 12 },
       "id": 8,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(http_server_requests_seconds_sum{pod=~\"$pod\"}[1m]) / rate(http_server_requests_seconds_count{pod=~\"$pod\"}[1m])", "legendFormat": "{{pod}} - avg", "refId": "A" }, { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "http_server_requests_seconds_max{pod=~\"$pod\"}", "legendFormat": "{{pod}} - max", "refId": "B" }],
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(http_server_requests_seconds_sum{pod=~\"$pod\"}[1m]) / rate(http_server_requests_seconds_count{pod=~\"$pod\"}[1m]) and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - avg", "refId": "A" }, { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "http_server_requests_seconds_max{pod=~\"$pod\"} and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - max", "refId": "B" }],
       "title": "HTTP 응답시간 (avg/max)",
       "type": "timeseries"
     },
@@ -262,7 +262,7 @@
   "templating": {
     "list": [
       { "current": {}, "hide": 0, "includeAll": false, "multi": false, "name": "DS_PROMETHEUS", "options": [], "query": "prometheus", "queryValue": "", "refresh": 1, "regex": "", "skipUrlSync": false, "type": "datasource" },
-      { "current": {}, "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "definition": "label_values(jvm_memory_used_bytes{application=\"neki\"}, pod)", "hide": 0, "includeAll": true, "multi": true, "name": "pod", "options": [], "query": { "query": "label_values(jvm_memory_used_bytes{application=\"neki\"}, pod)", "refId": "StandardVariableQuery" }, "refresh": 2, "regex": "", "skipUrlSync": false, "sort": 1, "type": "query", "label": "파드 선택" },
+      { "current": {}, "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "definition": "query_result(count by (pod) (jvm_memory_used_bytes{application=\"neki\"}))", "hide": 0, "includeAll": true, "multi": true, "allValue": ".*", "name": "pod", "options": [], "query": { "query": "query_result(count by (pod) (jvm_memory_used_bytes{application=\"neki\"}))", "refId": "StandardVariableQuery" }, "refresh": 2, "regex": "/pod=\"([^\"]+)\"/", "skipUrlSync": false, "sort": 1, "type": "query", "label": "파드 선택" },
       { "current": { "selected": false, "text": "", "value": "" }, "hide": 0, "name": "log_filter", "options": [{ "selected": true, "text": "", "value": "" }], "query": "", "skipUrlSync": false, "type": "textbox", "label": "로그 필터" }
     ]
   },

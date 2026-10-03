@@ -1938,7 +1938,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2026,7 +2026,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0)",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2114,7 +2114,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval]))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2637,13 +2637,13 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(http_server_requests_seconds_count{application=\"neki\"}, pod)",
+        "definition": "query_result(count by (pod) (http_server_requests_seconds_count{application=\"neki\"}))",
         "query": {
-          "query": "label_values(http_server_requests_seconds_count{application=\"neki\"}, pod)",
+          "query": "query_result(count by (pod) (http_server_requests_seconds_count{application=\"neki\"}))",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
-        "regex": "",
+        "regex": "/pod=\"([^\"]+)\"/",
         "includeAll": true,
         "multi": true,
         "allValue": ".*",
