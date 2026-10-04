@@ -445,6 +445,13 @@ data:
       shared_store: filesystem
       retention_enabled: true
 ---
+# 2.9.0 은 일별 index 테이블 목록을 기동 시 한 번만 캐시해서(query_ready_num_days: 0),
+# 기동 이후 생긴 날짜의 로그를 ingester 보유분(최근 몇십 분)밖에 조회하지 못했다.
+# 2.9.1 에서 고쳐졌다(grafana/loki#10585).
+#
+# 저장소는 local-path PVC 다. emptyDir 이면 파드가 새로 만들어질 때(이미지 변경 등)
+# 보존 중인 로그가 전부 지워진다. PVC(ReadWriteOnce, 노드 로컬)를 두 파드가 동시에
+# 잡지 않도록 strategy 는 Recreate 다.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -454,6 +461,8 @@ metadata:
     app: loki
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: loki
@@ -464,7 +473,7 @@ spec:
     spec:
       containers:
         - name: loki
-          image: grafana/loki:2.9.0
+          image: grafana/loki:2.9.17
           args:
             - "-config.file=/etc/loki/loki.yaml"
           ports:
@@ -498,7 +507,23 @@ spec:
           configMap:
             name: loki-config
         - name: loki-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: loki-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-storage
+  namespace: prod
+  labels:
+    app: loki
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
