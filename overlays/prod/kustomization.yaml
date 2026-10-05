@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
-  - notification-deployment.yaml
+  # neki-notification Deployment 는 BACKEND-135 로 Server apps/batch + Prefect(overlays/prefect)로 옮겨져 제거됨
   - ingress.yaml
   - ingressroute-https.yaml
   - certificate.yaml
