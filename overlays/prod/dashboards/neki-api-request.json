@@ -1,0 +1,426 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "요청 하나(request_id)의 요약과 전체 로그. 엔드포인트 상세의 요청 목록이나 Discord 에러 알림에서 들어온다. request_id 를 직접 붙여 넣어도 된다",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "← 엔드포인트 상세",
+      "url": "/d/neki-api-endpoint?${__url_time_range}&${method:queryparam}&${uri:queryparam}",
+      "type": "link",
+      "icon": "arrow-left",
+      "targetBlank": false
+    },
+    {
+      "title": "APM 엔드포인트 목록",
+      "url": "/d/neki-api-apm?${__url_time_range}",
+      "type": "link",
+      "icon": "apps",
+      "targetBlank": false
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "요청 요약 — request_id = ${request_id}",
+      "description": "이 요청의 [API_REQUEST] 로그",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false,
+            "filterable": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "시각"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "상태"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "소요시간"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 500
+                    },
+                    {
+                      "color": "red",
+                      "value": 1000
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "파드"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "시각",
+            "desc": true
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{app=\"neki-prod\"} |= \"$request_id\" | json | __error__=\"\" | logCategory=\"API_REQUEST\" | requestId=\"$request_id\"",
+          "refId": "A",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "range",
+          "maxLines": 10
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "auto",
+            "replace": false,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(Time|requestMethod|requestUri|responseStatus|durationMs|userId|pod)$"
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "durationMs",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "responseStatus",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "renameByName": {
+              "Time": "시각",
+              "requestMethod": "메서드",
+              "requestUri": "URI",
+              "responseStatus": "상태",
+              "durationMs": "소요시간",
+              "userId": "사용자",
+              "pod": "파드"
+            },
+            "indexByName": {
+              "Time": 0,
+              "requestMethod": 1,
+              "requestUri": 2,
+              "responseStatus": 3,
+              "durationMs": 4,
+              "userId": 5,
+              "pod": 6
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "시각",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "이 요청의 모든 로그 (시간순)",
+      "description": "같은 requestId(MDC) 를 가진 모든 라인. 행을 펼치면 스택트레이스 등 전체 필드",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Ascending"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{app=\"neki-prod\"} |= \"$request_id\" | json | __error__=\"\" | requestId=\"$request_id\"",
+          "refId": "A",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "range",
+          "maxLines": 1000
+        }
+      ]
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [
+    "neki-prod",
+    "apm",
+    "spring-boot",
+    "loki"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "request_id",
+        "label": "request_id",
+        "type": "textbox",
+        "hide": 0,
+        "query": "none",
+        "current": {
+          "selected": false,
+          "text": "none",
+          "value": "none"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "none",
+            "value": "none"
+          }
+        ],
+        "skipUrlSync": false
+      },
+      {
+        "name": "method",
+        "label": "메서드",
+        "type": "textbox",
+        "hide": 2,
+        "query": "",
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "skipUrlSync": false
+      },
+      {
+        "name": "uri",
+        "label": "엔드포인트",
+        "type": "textbox",
+        "hide": 2,
+        "query": "",
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Neki API 요청 상세",
+  "uid": "neki-api-request",
+  "version": 1,
+  "weekStart": ""
+}
