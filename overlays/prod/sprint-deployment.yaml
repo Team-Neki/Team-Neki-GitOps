@@ -53,9 +53,11 @@ spec:
                 name: sprint-config
             - secretRef:
                 name: sprint-secret
+          # /api/ready 는 첫 호출에 웜업(주요 페이지 + DB)을 시작하고 끝날 때까지 503 이라,
+          # 새 파드는 데워진 뒤에 트래픽을 받는다. liveness 는 가벼운 /api/health 그대로.
           readinessProbe:
             httpGet:
-              path: /api/health
+              path: /api/ready
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
