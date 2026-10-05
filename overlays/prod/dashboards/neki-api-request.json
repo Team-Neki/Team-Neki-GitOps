@@ -187,48 +187,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "userId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "clientIp"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "파드"
             },
             "properties": [
               {
                 "id": "custom.width",
                 "value": 220
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "requestId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 280
               }
             ]
           }
