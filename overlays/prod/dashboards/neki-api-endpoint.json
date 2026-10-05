@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "엔드포인트 하나의 상세: 처리량·에러·응답시간(메트릭+로그 백분위), 개별 요청 목록, 요청별 전체 로그. APM 대시보드에서 항목을 누르면 이리로 온다",
+  "description": "엔드포인트 하나의 상세: 요청 수·에러율·p50/p95/p99, 요청량·에러·지연 추이, 응답시간 분포, 요청 목록, WARN/ERROR 로그. APM 대시보드에서 항목을 누르면 이리로 오고, 요청 목록의 행을 누르면 요청 상세로 간다",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -43,20 +43,20 @@
       "type": "text",
       "title": "",
       "gridPos": {
-        "h": 3,
+        "h": 2,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "options": {
         "mode": "markdown",
-        "content": "## `${method}` `${uri}`\n[← 엔드포인트 목록 (APM)](/d/neki-api-apm?from=${__from}&to=${__to}) · [로그 대시보드](/d/observability-dashboard?from=${__from}&to=${__to}) · 로그 매칭 정규식 `^${uri_re}$` · 요청 목록의 행을 누르면 맨 아래에 그 요청의 전체 로그가 뜬다"
+        "content": "## `${method}` `${uri}`\n요청 목록의 행을 누르면 그 요청의 상세(전체 로그)로 이동한다 · 로그 매칭 정규식 `^${uri_re}$`"
       }
     },
     {
       "id": 2,
       "type": "stat",
-      "title": "요청 처리량",
+      "title": "요청 수",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -64,72 +64,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
+        "w": 4,
         "x": 0,
-        "y": 3
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "reqps",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]))",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "총 요청 수",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 3
+        "y": 2
       },
       "fieldConfig": {
         "defaults": {
@@ -182,7 +119,7 @@
       ]
     },
     {
-      "id": 4,
+      "id": 3,
       "type": "stat",
       "title": "5xx 비율",
       "description": "",
@@ -192,9 +129,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 6,
-        "y": 3
+        "w": 4,
+        "x": 4,
+        "y": 2
       },
       "fieldConfig": {
         "defaults": {
@@ -255,7 +192,7 @@
       ]
     },
     {
-      "id": 5,
+      "id": 4,
       "type": "stat",
       "title": "4xx 비율",
       "description": "",
@@ -265,9 +202,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 9,
-        "y": 3
+        "w": 4,
+        "x": 8,
+        "y": 2
       },
       "fieldConfig": {
         "defaults": {
@@ -328,19 +265,19 @@
       ]
     },
     {
-      "id": 6,
+      "id": 5,
       "type": "stat",
-      "title": "평균 응답시간 (메트릭)",
-      "description": "",
+      "title": "p50",
+      "description": "선택 기간 전체의 백분위. Micrometer 히스토그램 bucket 으로 계산",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
+        "w": 4,
         "x": 12,
-        "y": 3
+        "y": 2
       },
       "fieldConfig": {
         "defaults": {
@@ -391,7 +328,80 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])) > 0)",
+          "expr": "histogram_quantile(0.5, sum by (le) (increase(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])))",
+          "refId": "A",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "p95",
+      "description": "선택 기간 전체의 백분위. Micrometer 히스토그램 bucket 으로 계산",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 2
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "decimals": 3
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (increase(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])))",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -403,24 +413,24 @@
     {
       "id": 7,
       "type": "stat",
-      "title": "p50 (로그)",
-      "description": "요청 로그의 durationMs 로 계산한 선택 기간 백분위",
+      "title": "p99",
+      "description": "선택 기간 전체의 백분위. Micrometer 히스토그램 bucket 으로 계산",
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 15,
-        "y": 3
+        "w": 4,
+        "x": 20,
+        "y": 2
       },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "unit": "ms",
+          "unit": "s",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -431,15 +441,15 @@
               },
               {
                 "color": "yellow",
-                "value": 500
+                "value": 0.5
               },
               {
                 "color": "red",
-                "value": 1000
+                "value": 1
               }
             ]
           },
-          "decimals": 0
+          "decimals": 3
         },
         "overrides": []
       },
@@ -453,7 +463,7 @@
         },
         "orientation": "auto",
         "textMode": "auto",
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
         "wideLayout": true
@@ -461,178 +471,22 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "quantile_over_time(0.5, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [$__range]) by (requestMethod)",
+          "expr": "histogram_quantile(0.99, sum by (le) (increase(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__range])))",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
-          "queryType": "instant"
+          "instant": true,
+          "range": false
         }
       ]
     },
     {
       "id": 8,
-      "type": "stat",
-      "title": "p95 (로그)",
-      "description": "요청 로그의 durationMs 로 계산한 선택 기간 백분위",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 18,
-        "y": 3
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "ms",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 500
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
-            ]
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.95, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [$__range]) by (requestMethod)",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code",
-          "queryType": "instant"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "type": "stat",
-      "title": "p99 (로그)",
-      "description": "요청 로그의 durationMs 로 계산한 선택 기간 백분위",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 21,
-        "y": 3
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "ms",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 500
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
-            ]
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "orientation": "auto",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.99, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [$__range]) by (requestMethod)",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code",
-          "queryType": "instant"
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "type": "row",
-      "title": "📈 추이",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 7
-      },
-      "panels": []
-    },
-    {
-      "id": 11,
       "type": "timeseries",
-      "title": "요청 처리량 — 상태코드별 (req/s)",
+      "title": "요청량 — 상태 클래스별 (req/s)",
       "description": "",
       "datasource": {
         "type": "prometheus",
@@ -642,7 +496,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 8
+        "y": 6
       },
       "fieldConfig": {
         "defaults": {
@@ -770,177 +624,15 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (status) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]))",
+          "expr": "sum by (status_class) (label_replace(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval]), \"status_class\", \"${1}xx\", \"status\", \"(\\\\d)..\"))",
           "refId": "A",
-          "legendFormat": "{{status}}",
+          "legendFormat": "{{status_class}}",
           "editorMode": "code"
         }
       ]
     },
     {
-      "id": 12,
-      "type": "timeseries",
-      "title": "응답시간 — 평균(메트릭) · p50/p95/p99(로그, 5분 창)",
-      "description": "avg 는 Micrometer rate(sum)/rate(count). p50/p95/p99 는 요청 로그 durationMs 의 5분 이동 창 백분위",
-      "datasource": {
-        "type": "datasource",
-        "uid": "-- Mixed --"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 8
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "s",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "fillOpacity": 0,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": false,
-            "axisPlacement": "auto",
-            "axisLabel": "",
-            "axisBorderShow": false,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "thresholdsStyle": {
-              "mode": "dashed"
-            },
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.5
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p99 (log)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "p95 (log)"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "mean",
-            "max"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0)",
-          "refId": "A",
-          "legendFormat": "avg (metric)",
-          "editorMode": "code"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.5, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [5m]) by (requestMethod) / 1000",
-          "refId": "B",
-          "legendFormat": "p50 (log)",
-          "editorMode": "code",
-          "queryType": "range"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.95, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [5m]) by (requestMethod) / 1000",
-          "refId": "C",
-          "legendFormat": "p95 (log)",
-          "editorMode": "code",
-          "queryType": "range"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "quantile_over_time(0.99, {app=\"neki-prod\", pod=~\"$pod\"} | json logCategory=\"logCategory\", requestMethod=\"requestMethod\", requestUri=\"requestUri\", durationMs=\"durationMs\", responseStatus=\"responseStatus\" | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | unwrap durationMs [5m]) by (requestMethod) / 1000",
-          "refId": "D",
-          "legendFormat": "p99 (log)",
-          "editorMode": "code",
-          "queryType": "range"
-        }
-      ]
-    },
-    {
-      "id": 13,
+      "id": 9,
       "type": "timeseries",
       "title": "에러 — 상태코드별 (4xx·5xx, req/s)",
       "description": "",
@@ -951,8 +643,8 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 16,
-        "y": 8
+        "x": 8,
+        "y": 6
       },
       "fieldConfig": {
         "defaults": {
@@ -1088,10 +780,10 @@
       ]
     },
     {
-      "id": 14,
+      "id": 10,
       "type": "timeseries",
-      "title": "파드별 요청 처리량 (req/s)",
-      "description": "",
+      "title": "지연 — p50 / p95 / p99 · 평균",
+      "description": "백분위는 히스토그램 bucket, 평균은 rate(sum)/rate(count). 점선은 0.5초/1초 기준선",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -1099,95 +791,8 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 0,
-        "y": 16
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "showPoints": "never",
-            "pointSize": 4,
-            "spanNulls": false,
-            "axisPlacement": "auto",
-            "axisLabel": "",
-            "axisBorderShow": false,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "stacking": {
-              "mode": "normal",
-              "group": "A"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
-          "refId": "A",
-          "legendFormat": "{{pod}}",
-          "editorMode": "code"
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "type": "timeseries",
-      "title": "파드별 평균 응답시간",
-      "description": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 16
+        "x": 16,
+        "y": 6
       },
       "fieldConfig": {
         "defaults": {
@@ -1215,7 +820,7 @@
               "group": "A"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "dashed"
             },
             "hideFrom": {
               "legend": false,
@@ -1230,18 +835,90 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p99"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true,
-          "calcs": []
+          "calcs": [
+            "mean",
+            "max"
+          ]
         },
         "tooltip": {
           "mode": "multi",
@@ -1254,15 +931,125 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])))",
           "refId": "A",
-          "legendFormat": "{{pod}}",
+          "legendFormat": "p50",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])))",
+          "refId": "B",
+          "legendFormat": "p95",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])))",
+          "refId": "C",
+          "legendFormat": "p99",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0)",
+          "refId": "D",
+          "legendFormat": "avg",
           "editorMode": "code"
         }
       ]
     },
     {
-      "id": 16,
+      "id": 11,
+      "type": "heatmap",
+      "title": "응답시간 분포 (히스토그램)",
+      "description": "구간별 요청 수. 색이 진할수록 많다. 위쪽에 점이 찍히면 느린 요청",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 14
+      },
+      "interval": "1m",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by (le) (increase(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__interval]))",
+          "refId": "A",
+          "legendFormat": "{{le}}",
+          "editorMode": "code",
+          "format": "heatmap",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "mode": "scheme",
+          "scheme": "Oranges",
+          "steps": 64,
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "reverse": false,
+          "scale": "exponential"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "show": true,
+          "yHistogram": true
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "s"
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        }
+      }
+    },
+    {
+      "id": 12,
       "type": "timeseries",
       "title": "예외 발생 (exception 라벨, req/s)",
       "description": "",
@@ -1274,7 +1061,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 16
+        "y": 14
       },
       "fieldConfig": {
         "defaults": {
@@ -1349,23 +1136,10 @@
       ]
     },
     {
-      "id": 17,
-      "type": "row",
-      "title": "🧾 요청 목록 (요청 로그 기반, Datadog Traces 뷰)",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "panels": []
-    },
-    {
-      "id": 18,
+      "id": 13,
       "type": "table",
-      "title": "최근 요청 — 최신순 (상태 필터: ${status_re})",
-      "description": "RequestLoggingFilter 의 [API_REQUEST] 로그. 최대 500건. 헤더를 눌러 정렬, 행을 눌러 전체 로그",
+      "title": "요청 목록 (상태 필터: ${status_re}) — 행을 누르면 요청 상세",
+      "description": "RequestLoggingFilter 의 [API_REQUEST] 로그. 최대 500건. 헤더를 눌러 정렬(소요시간 내림차순 = 느린 요청), 상태 필터로 에러만",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -1374,7 +1148,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 22
       },
       "fieldConfig": {
         "defaults": {
@@ -1398,8 +1172,8 @@
           },
           "links": [
             {
-              "title": "🧵 이 요청의 전체 로그 보기 (아래 패널)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&${method:queryparam}&${uri:queryparam}&${status_re:queryparam}&var-request_id=${__data.fields.requestId}"
+              "title": "요청 상세 (전체 로그)",
+              "url": "/d/neki-api-request?${__url_time_range}&var-request_id=${__data.fields.requestId}&${method:queryparam}&${uri:queryparam}"
             }
           ]
         },
@@ -1666,680 +1440,7 @@
       ]
     },
     {
-      "id": 19,
-      "type": "table",
-      "title": "가장 느린 요청 톱 20",
-      "description": "선택 기간에서 durationMs 가 큰 순",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 37
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false,
-            "filterable": true
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🧵 이 요청의 전체 로그 보기 (아래 패널)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&${method:queryparam}&${uri:queryparam}&${status_re:queryparam}&var-request_id=${__data.fields.requestId}"
-            }
-          ]
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "시각"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 190
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "상태"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 70
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 400
-                    },
-                    {
-                      "color": "red",
-                      "value": 500
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "소요시간"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "ms"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              },
-              {
-                "id": "custom.width",
-                "value": 100
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 500
-                    },
-                    {
-                      "color": "red",
-                      "value": 1000
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "userId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "clientIp"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "파드"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 220
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "requestId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 280
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
-        },
-        "sortBy": [
-          {
-            "displayName": "소요시간",
-            "desc": true
-          }
-        ]
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{app=\"neki-prod\", pod=~\"$pod\"} | json | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | responseStatus=~\"${status_re:raw}\"",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code",
-          "queryType": "range",
-          "maxLines": 500
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "labels",
-            "format": "auto",
-            "replace": false,
-            "keepTime": false
-          }
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "pattern": "^(Time|requestId|responseStatus|durationMs|userId|clientIp|pod|requestUri)$"
-            }
-          }
-        },
-        {
-          "id": "convertFieldType",
-          "options": {
-            "conversions": [
-              {
-                "targetField": "durationMs",
-                "destinationType": "number"
-              },
-              {
-                "targetField": "responseStatus",
-                "destinationType": "number"
-              }
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "renameByName": {
-              "Time": "시각",
-              "responseStatus": "상태",
-              "durationMs": "소요시간",
-              "userId": "userId",
-              "clientIp": "clientIp",
-              "pod": "파드",
-              "requestUri": "실제 경로"
-            },
-            "indexByName": {
-              "Time": 0,
-              "responseStatus": 1,
-              "durationMs": 2,
-              "requestUri": 3,
-              "userId": 4,
-              "clientIp": 5,
-              "pod": 6,
-              "requestId": 7
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              {
-                "field": "소요시간",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "limit",
-          "options": {
-            "limitField": 20
-          }
-        }
-      ]
-    },
-    {
-      "id": 20,
-      "type": "table",
-      "title": "에러 요청 (4xx·5xx) 최신순",
-      "description": "",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 37
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false,
-            "filterable": true
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🧵 이 요청의 전체 로그 보기 (아래 패널)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&${method:queryparam}&${uri:queryparam}&${status_re:queryparam}&var-request_id=${__data.fields.requestId}"
-            }
-          ]
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "시각"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 190
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "상태"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 70
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 400
-                    },
-                    {
-                      "color": "red",
-                      "value": 500
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "소요시간"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "ms"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              },
-              {
-                "id": "custom.width",
-                "value": 100
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 500
-                    },
-                    {
-                      "color": "red",
-                      "value": 1000
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "userId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "clientIp"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "파드"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 220
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "requestId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 280
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "fields": ""
-        },
-        "sortBy": [
-          {
-            "displayName": "시각",
-            "desc": true
-          }
-        ]
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{app=\"neki-prod\", pod=~\"$pod\"} | json | __error__=\"\" | logCategory=\"API_REQUEST\" | requestMethod=\"$method\" | requestUri=~\"^${uri_re:raw}$\" | responseStatus=~\"${status_re:raw}\" | responseStatus=~\"4..|5..\"",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code",
-          "queryType": "range",
-          "maxLines": 500
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "labels",
-            "format": "auto",
-            "replace": false,
-            "keepTime": false
-          }
-        },
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "pattern": "^(Time|requestId|responseStatus|durationMs|userId|clientIp|pod|requestUri)$"
-            }
-          }
-        },
-        {
-          "id": "convertFieldType",
-          "options": {
-            "conversions": [
-              {
-                "targetField": "durationMs",
-                "destinationType": "number"
-              },
-              {
-                "targetField": "responseStatus",
-                "destinationType": "number"
-              }
-            ]
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "renameByName": {
-              "Time": "시각",
-              "responseStatus": "상태",
-              "durationMs": "소요시간",
-              "userId": "userId",
-              "clientIp": "clientIp",
-              "pod": "파드",
-              "requestUri": "실제 경로"
-            },
-            "indexByName": {
-              "Time": 0,
-              "responseStatus": 1,
-              "durationMs": 2,
-              "requestUri": 3,
-              "userId": 4,
-              "clientIp": 5,
-              "pod": 6,
-              "requestId": 7
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              {
-                "field": "시각",
-                "desc": true
-              }
-            ]
-          }
-        },
-        {
-          "id": "limit",
-          "options": {
-            "limitField": 100
-          }
-        }
-      ]
-    },
-    {
-      "id": 21,
-      "type": "row",
-      "title": "🧵 로그",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 47
-      },
-      "panels": []
-    },
-    {
-      "id": 22,
-      "type": "logs",
-      "title": "선택한 요청의 전체 로그 — request_id = ${request_id}",
-      "description": "요청 목록에서 행을 누르면 request_id 변수가 채워진다. 요청 로그와 같은 requestId(MDC) 를 가진 WARN/ERROR 라인이 시간순으로 나온다",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 48
-      },
-      "options": {
-        "showTime": true,
-        "showLabels": false,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Ascending"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "expr": "{app=\"neki-prod\"} | json | __error__=\"\" | requestId=\"$request_id\"",
-          "refId": "A",
-          "legendFormat": "",
-          "editorMode": "code",
-          "queryType": "range",
-          "maxLines": 1000
-        }
-      ]
-    },
-    {
-      "id": 23,
+      "id": 14,
       "type": "logs",
       "title": "이 엔드포인트의 WARN / ERROR 로그",
       "description": "ExceptionHandler 등이 남긴 라인. MDC 의 requestUri 는 실제 경로라 uri_re 정규식으로 매칭",
@@ -2351,7 +1452,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 34
       },
       "options": {
         "showTime": true,
@@ -2375,6 +1476,194 @@
           "editorMode": "code",
           "queryType": "range",
           "maxLines": 1000
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "🖥️ 파드별",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "panels": [
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "파드별 요청 처리량 (req/s)",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 45
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "unit": "reqps",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "fillOpacity": 20,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "pointSize": 4,
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "axisLabel": "",
+                "axisBorderShow": false,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+              "refId": "A",
+              "legendFormat": "{{pod}}",
+              "editorMode": "code"
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "type": "timeseries",
+          "title": "파드별 평균 응답시간",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 45
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "showPoints": "never",
+                "pointSize": 4,
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "axisLabel": "",
+                "axisBorderShow": false,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                },
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=\"$method\", uri=\"$uri\"}[$__rate_interval])) > 0) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+              "refId": "A",
+              "legendFormat": "{{pod}}",
+              "editorMode": "code"
+            }
+          ]
         }
       ]
     }
@@ -2549,21 +1838,6 @@
         "multi": false,
         "skipUrlSync": false,
         "description": "요청 목록 테이블의 상태코드 필터"
-      },
-      {
-        "name": "request_id",
-        "label": "request_id",
-        "type": "textbox",
-        "query": "none",
-        "hide": 0,
-        "current": {
-          "selected": false,
-          "text": "none",
-          "value": "none"
-        },
-        "options": [],
-        "skipUrlSync": false,
-        "description": "요청 목록에서 행을 누르면 자동으로 채워진다. 직접 붙여 넣어도 된다"
       }
     ]
   },
@@ -2573,7 +1847,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Neki API 엔드포인트 상세 (요청 목록 · 로그)",
+  "title": "Neki API 엔드포인트 상세",
   "uid": "neki-api-endpoint",
   "version": 1,
   "weekStart": ""
