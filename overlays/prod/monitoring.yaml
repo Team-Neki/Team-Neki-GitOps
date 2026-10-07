@@ -102,24 +102,6 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
-      # emptyDir -> PVC 전환용 1회 복원. PVC 가 비어 있고 노드의 /home/yapp/pvc-migration/prometheus.tar
-      # 가 있을 때만 풀어 넣는다(전환 절차는 Sprint BACKEND-225 참고). 전환을 확인한 뒤 후속 PR 에서 뺀다.
-      initContainers:
-        - name: restore-from-emptydir
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              if [ -n "$(ls -A /data)" ]; then echo "PVC 에 데이터가 있어 복원하지 않는다"; exit 0; fi
-              if [ ! -f /backup/prometheus.tar ]; then echo "백업이 없어 빈 저장소로 시작한다"; exit 0; fi
-              tar xpf /backup/prometheus.tar -C /data && echo "복원 완료: prometheus.tar"
-          volumeMounts:
-            - name: prometheus-storage
-              mountPath: /data
-            - name: pvc-migration
-              mountPath: /backup
-              readOnly: true
       containers:
         - name: prometheus
           image: prom/prometheus:v2.47.0
@@ -148,10 +130,6 @@ spec:
         - name: prometheus-storage
           persistentVolumeClaim:
             claimName: prometheus-storage
-        - name: pvc-migration
-          hostPath:
-            path: /home/yapp/pvc-migration
-            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -360,24 +338,6 @@ spec:
       labels:
         app: grafana
     spec:
-      # emptyDir -> PVC 전환용 1회 복원. PVC 가 비어 있고 노드의 /home/yapp/pvc-migration/grafana.tar
-      # 가 있을 때만 풀어 넣는다(전환 절차는 Sprint BACKEND-225 참고). 전환을 확인한 뒤 후속 PR 에서 뺀다.
-      initContainers:
-        - name: restore-from-emptydir
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              if [ -n "$(ls -A /data)" ]; then echo "PVC 에 데이터가 있어 복원하지 않는다"; exit 0; fi
-              if [ ! -f /backup/grafana.tar ]; then echo "백업이 없어 빈 저장소로 시작한다"; exit 0; fi
-              tar xpf /backup/grafana.tar -C /data && echo "복원 완료: grafana.tar"
-          volumeMounts:
-            - name: grafana-storage
-              mountPath: /data
-            - name: pvc-migration
-              mountPath: /backup
-              readOnly: true
       containers:
         - name: grafana
           image: grafana/grafana:10.1.0
@@ -455,10 +415,6 @@ spec:
         - name: grafana-storage
           persistentVolumeClaim:
             claimName: grafana-storage
-        - name: pvc-migration
-          hostPath:
-            path: /home/yapp/pvc-migration
-            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
