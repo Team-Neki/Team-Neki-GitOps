@@ -30,8 +30,9 @@ gitops-k3s/
     │   │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
     │   │   ├── certificate.yaml    # yapp-monitoring-tls-cert
     │   │   └── dashboards/         # Grafana 대시보드 JSON
-    │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC)
-    │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute
+    │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC) - admin-web-prod
+    │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute - admin-web-prod
+    │   ├── admin-web-certificate.yaml  # admin-web-tls-cert - admin-web-prod
     │   ├── admin-web-secret.example.yaml # neki-admin-web 환경변수 예시
     │   ├── admin-web-secret.yaml       # ⚠️ gitignore - 직접 관리 필요
     │   └── secret.yaml             # ⚠️ gitignore - 직접 관리 필요
@@ -138,8 +139,9 @@ kubectl apply -k overlays/staging/
 ## Neki Admin (`overlays/prod/admin-web-*.yaml`)
 
 [Team-Neki-Admin](https://github.com/Team-Neki/Team-Neki-Admin) 의 운영자 관리 페이지(Next.js
-standalone) 입니다. `prod` 네임스페이스에 있으므로 기존 `neki-prod` ArgoCD Application 이
-그대로 동기화합니다. 별도 Application 은 없습니다.
+standalone) 입니다. 별도 ArgoCD Application `admin-web-prod`(`argocd/apps/admin-web-prod.yaml`)가
+`overlays/prod` 의 `admin-web-*.yaml` 만 골라(`directory.include`) 동기화합니다. `neki-prod` 의
+`kustomization.yaml` 에는 넣지 않습니다. 매니페스트 파일을 추가하면 include 목록에도 넣어야 합니다.
 
 | 구성요소 | 리소스 | 비고 |
 |---|---|---|
