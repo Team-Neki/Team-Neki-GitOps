@@ -75,6 +75,13 @@ spec:
               value: http://localhost:30420/api
             - name: PREFECT_UI_STATIC_DIRECTORY
               value: /ui_build
+            # 내장 db_vacuum 서비스. 기본값은 events 만 지우므로 flow_runs 를 켜야 실행 이력이 정리됨
+            # 종료 상태이고 end_time 이 보관 기간을 지난 flow run 과 딸린 로그·아티팩트를 한 시간마다 삭제
+            - name: PREFECT_SERVER_SERVICES_DB_VACUUM_ENABLED
+              value: events,flow_runs
+            # 초 단위. 604800 = 7일
+            - name: PREFECT_SERVER_SERVICES_DB_VACUUM_RETENTION_PERIOD
+              value: "604800"
             # DB 는 노드(호스트)에 패키지로 설치된 PostgreSQL 14 를 사용 (192.168.219.106:5432, DB/role 이름 prefect)
             # 비밀번호는 secret.yaml(gitignore) 의 prefect-db Secret - 호스트 DB 의 prefect role 비밀번호와 같아야 함
             - name: PREFECT_SERVER_DATABASE_PASSWORD
