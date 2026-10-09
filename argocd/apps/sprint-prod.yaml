@@ -1,0 +1,34 @@
+# Sprint 앱 - overlays/prod 의 sprint-*.yaml 만 골라 동기화한다.
+# Sprint 레포 CI 가 overlays/prod/sprint-deployment.yaml 경로를 직접 고치므로 파일 위치는 그대로 두고,
+# directory.include 로 neki-prod(kustomize)와 리소스를 나눈다. sprint 매니페스트를 추가하면 include 에도 넣는다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sprint-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Team-Neki/Team-Neki-GitOps.git
+    targetRevision: main
+    path: overlays/prod
+    directory:
+      include: '{sprint-deployment.yaml,sprint-config.yaml,sprint-ingressroute-https.yaml,sprint-certificate.yaml}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
