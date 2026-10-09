@@ -651,7 +651,8 @@ data:
       http_listen_port: 9080
       grpc_listen_port: 0
     positions:
-      filename: /tmp/positions.yaml
+      # 노드 hostPath(/var/lib/promtail)에 둔다. 컨테이너 /tmp 에 두면 파드 재시작 때 지워져 로그를 처음부터 다시 읽는다
+      filename: /var/lib/promtail/positions.yaml
     clients:
       - url: http://loki-service:3100/loki/api/v1/push
         batchwait: 10ms
@@ -726,6 +727,8 @@ spec:
             - name: varlogpods
               mountPath: /var/log/pods
               readOnly: true
+            - name: positions
+              mountPath: /var/lib/promtail
       volumes:
         - name: promtail-config
           configMap:
@@ -739,3 +742,8 @@ spec:
         - name: varlogpods
           hostPath:
             path: /var/log/pods
+        # positions 파일 보관용. /run(tmpfs)이 아니라 /var/lib 에 둬서 노드 재부팅 후에도 남긴다
+        - name: positions
+          hostPath:
+            path: /var/lib/promtail
+            type: DirectoryOrCreate
