@@ -24,8 +24,12 @@ gitops-k3s/
     │   ├── ingress.yaml            # HTTP (web entrypoint)
     │   ├── ingressroute-https.yaml # HTTPS (websecure entrypoint)
     │   ├── certificate.yaml        # cert-manager TLS 인증서 요청
-    │   ├── monitoring.yaml         # Prometheus / Grafana / Loki / Promtail
-    │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
+    │   ├── monitoring/             # 별도 Application monitoring-prod (argocd/apps/monitoring-prod.yaml)
+    │   │   ├── kustomization.yaml  # 대시보드 ConfigMap(grafana-dashboards) 생성 포함
+    │   │   ├── monitoring.yaml     # Prometheus / Grafana / Loki / Promtail
+    │   │   ├── monitoring-ingressroute.yaml # Grafana HTTPS IngressRoute
+    │   │   ├── certificate.yaml    # yapp-monitoring-tls-cert
+    │   │   └── dashboards/         # Grafana 대시보드 JSON
     │   ├── admin-web-deployment.yaml   # neki-admin-web (Deployment / Service / PVC)
     │   ├── admin-web-ingressroute-https.yaml # neki-admin-web HTTPS IngressRoute
     │   ├── admin-web-secret.example.yaml # neki-admin-web 환경변수 예시
