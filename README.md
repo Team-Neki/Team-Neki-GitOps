@@ -237,15 +237,16 @@ OAuth 가 붙는 것을 전제로 미리 맞춰 둔 이름이라, 아래 표의 
   주기를 30s 로 늘려 부담을 줄였지만, 앱에 `/api/health` 가 추가되면 probe 를 그쪽으로
   옮기는 편이 낫습니다.
 
-## Prefect (`overlays/prefect/`)
+## Prefect (`overlays/prefect/`, `overlays/prefect-stg/`)
 
-Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(prefect-helm)를 렌더링한 결과를 kustomize 용으로 정리해 관리하며, 다른 overlay 와 같은 방식으로 ArgoCD(`argocd/apps/prefect.yaml`)가 동기화합니다. 메타데이터 DB 는 클러스터 안에 두지 않고 노드(호스트)에 설치된 PostgreSQL 14 를 사용합니다.
+Prefect 3 서버와 메타데이터 DB 는 공통으로 쓰고, prod/stg worker 와 flow run Job 은 각각 `prefect`/`prefect-stg` 네임스페이스에서 실행합니다. ArgoCD Application 은 `prefect` 와 `prefect-stg` 입니다. 메타데이터 DB 는 클러스터 안에 두지 않고 노드(호스트)의 PostgreSQL 14 를 사용합니다.
 
 | 구성요소 | 리소스 | 비고 |
 |---|---|---|
 | prefect-server | Deployment / Service(NodePort 30420) | `prefecthq/prefect:3.8.5-python3.11` |
-| prefect-worker | Deployment / Role / RoleBinding | work pool `kubernetes-pool` 자동 생성, flow run 은 `prefect` 네임스페이스에 Job 으로 실행 |
+| prefect-worker | Deployment / Role / RoleBinding | work pool `neki-pool` 자동 생성, flow run 은 `prefect` 네임스페이스에 Job 으로 실행 |
 | (DB) | 호스트 PostgreSQL 14 (`192.168.219.106:5432`, DB/role `prefect`) | 클러스터 리소스 없음. 파드 → 노드 IP 로 직접 접속 |
+| prefect-stg-worker | `prefect-stg` 네임스페이스의 Deployment / Role / RoleBinding | `neki-stg-pool`, flow run Job 도 `prefect-stg` 에 실행 |
 
 ### 접속
 
@@ -262,7 +263,7 @@ flow 코드에서 접속할 때(클러스터 내부): `PREFECT_API_URL=http://pr
 
 `overlays/prefect/secret.yaml` (gitignore) 에 호스트 DB `prefect` role 의 비밀번호가 있습니다(Secret `prefect-db`). `secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 호스트 DB 에 role/database 를 만드는 방법은 `secret.example.yaml` 주석을 참고하세요.
 
-flow 가 바깥(Kakao, 앱 DB, S3)에 붙을 때 쓰는 값은 별도 Secret `prefect-workflow` 입니다(`overlays/prefect/workflow-secret.yaml`, gitignore). `workflow-secret.example.yaml` 을 복사해 만들고 직접 apply 합니다. 이 값은 worker 가 아니라 flow run Job 파드가 읽으므로 `worker-base-job-template.json` 의 `envFrom` 이 이 Secret 을 참조합니다. **Secret 이 없으면 flow run Job 파드가 `CreateContainerConfigError` 로 뜨지 않습니다.** 키를 추가할 때는 example 파일도 같이 갱신하세요.
+flow 가 바깥(Kakao, 앱 DB, S3)에 붙을 때 쓰는 값은 각 네임스페이스의 `prefect-workflow` Secret 입니다. 각 overlay 의 `workflow-secret.example.yaml` 을 복사해 실제 Secret 을 직접 적용합니다. worker 가 아니라 flow run Job 파드가 읽습니다. **Secret 이 없으면 flow run Job 파드가 `CreateContainerConfigError` 로 뜨지 않습니다.** prod Secret 은 운영 앱 DB/버킷, stg Secret 은 `dev_yapp`/`staging-team-neki-workflow` 를 가리켜야 합니다. 기존 `prefect` Secret 의 실제 값을 확인하지 않고 prod 라고 가정해 배포하면 안 됩니다.
 
 | 키 | 쓰는 flow | 없으면 |
 |---|---|---|
@@ -271,17 +272,26 @@ flow 가 바깥(Kakao, 앱 DB, S3)에 붙을 때 쓰는 값은 별도 Secret `pr
 | `S3_BUCKET` | 지점 수집 (`stores-collect`, 브랜드별 `*-stores`). 수집 결과를 S3 `raw/` `collect/` `runs/` 에 적재. 환경 접두를 붙인 `staging-team-neki-workflow` 또는 `prod-team-neki-workflow` | 적재 시점에 `RuntimeError` 로 실패 |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION` | 지점 수집. boto3 기본 자격증명 체인이 집어감. IAM role 없음 | S3 PUT 에서 `NoCredentialsError` 로 실패 |
 
-k3s 에서는 LocalStack 을 쓰지 않고 실제 S3 만 씁니다. 버킷은 `staging-team-neki-workflow`, `prod-team-neki-workflow` 둘을 만들어 두고, Prefect 가 단일 인스턴스라 `S3_BUCKET` 값 하나가 이 클러스터의 flow 가 어느 환경에 쓰는지를 정합니다. `DATABASE_URL` 이 가리키는 앱 DB 와 같은 환경이어야 합니다.
+k3s 에서는 LocalStack 을 쓰지 않고 기존 `staging-team-neki-workflow`, `prod-team-neki-workflow` 버킷을 각각 사용합니다. 각 Secret 의 `S3_BUCKET` 과 `DATABASE_URL` 은 같은 환경이어야 합니다. 두 work pool 은 공통 Prefect API 를 쓰지만 deployment 이름은 stg 에만 `-stg` 접미사를 붙여 구분합니다. 검색 색인 Batch Job 은 flow run 파드의 service account namespace 에 생성됩니다.
 
-S3 자격증명의 IAM 사용자에는 두 버킷의 `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` 이 있어야 합니다. 최신 파티션을 목록 조회로 찾고 실패한 브랜드를 이전 파티션으로 대신하므로 쓰기만으로는 부족합니다. `AWS_PROFILE`, `AWS_ENDPOINT_URL` 은 로컬 LocalStack 용이므로 넣지 않습니다.
+S3 자격증명은 환경별 버킷만 접근하도록 나누고 `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` 을 허용합니다. 최신 파티션을 목록 조회로 찾고 실패한 브랜드를 이전 파티션으로 대신하므로 쓰기만으로는 부족합니다. `AWS_PROFILE`, `AWS_ENDPOINT_URL` 은 로컬 LocalStack 용이므로 넣지 않습니다.
 
 `DATABASE_URL` 은 파드에서 붙으므로 호스트를 `localhost` 로 적으면 안 됩니다. 노드 IP 또는 클러스터 Service 주소를 씁니다. 대상은 Prefect 메타DB(`prefect-db`)가 아니라 Team-Neki-Server 가 쓰는 앱 DB 입니다.
 
 ```bash
 kubectl apply -f overlays/prefect/secret.yaml
 kubectl apply -f overlays/prefect/workflow-secret.yaml
+kubectl apply -f overlays/prefect-stg/workflow-secret.yaml
 kubectl apply -k overlays/prefect/
+kubectl apply -k overlays/prefect-stg/
+kubectl apply -f argocd/apps/prefect-stg.yaml
 ```
+
+새 staging worker 를 처음 켤 때는 GitOps overlay 를 먼저 병합하고, Workflow 저장소의
+`build` 액션을 `environment=stg` 로 실행해 `--environment stg` 를 지원하는 이미지
+태그로 갱신합니다. 그 뒤 staging Secret 을 적용하고 `prefect-stg` Application 을
+동기화합니다. overlay 에 들어 있는 초기 이미지 태그는 기존 운영 이미지라 staging
+deployment 등록 기능이 없으며, 그대로 worker 를 시작하면 initContainer 가 실패합니다.
 
 ### 업그레이드
 
@@ -324,7 +334,7 @@ kubectl apply -k overlays/staging/
 
 ## Spring Batch 이미지 배포
 
-Server의 `Deploy Batch (GHCR + GitOps)`를 main에서 수동 실행한다. 워크플로는 `overlays/prefect/images.env`의 `NEKI_BATCH_IMAGE`를 GHCR의 버전-SHA 태그로 갱신한다. 이 값은 prefect 네임스페이스의 고정 이름 ConfigMap `neki-images`로 생성되며, Prefect flow Job이 `envFrom`으로 읽는다. 별도의 상주 batch Deployment를 만들지 않는다.
+Server의 `Deploy Batch (GHCR + GitOps)`를 수동 실행하며 `environment=stg` 또는 `prod` 를 선택한다. 워크플로는 해당 overlay 의 `images.env` 에서 `NEKI_BATCH_IMAGE`를 GHCR의 버전-SHA 태그로 갱신한다. 각 네임스페이스의 고정 이름 ConfigMap `neki-images`를 Prefect flow Job이 `envFrom`으로 읽는다. 별도의 상주 batch Deployment를 만들지 않는다.
 
 초기 `:main` 값은 첫 배포 전 자리표시자다. 최초 이미지 게시와 GitOps 태그 갱신을 완료한 뒤 배치를 호출한다. 배치 이미지는 pull secret을 사용하지 않으므로 GHCR 패키지를 public으로 제공해야 한다. API가 먼저 배포되어 배치 메타 테이블 마이그레이션이 적용되어 있어야 한다.
 
