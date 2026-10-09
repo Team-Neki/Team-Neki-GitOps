@@ -1,12 +1,12 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: neki-tls-cert
+  name: admin-web-tls-cert
   namespace: prod
 spec:
-  secretName: neki-tls-cert
+  secretName: admin-web-tls-cert
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
   dnsNames:
-  - yapp.suitestudy.com
+  - admin-web.suitestudy.com
