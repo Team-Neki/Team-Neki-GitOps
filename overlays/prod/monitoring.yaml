@@ -419,6 +419,14 @@ spec:
               mountPath: /var/lib/grafana/dashboards
             - name: grafana-storage
               mountPath: /var/lib/grafana
+          # CPU limit 200m 에서는 기동(HTTP 포트가 열리기까지)에 45~55초가 걸린다.
+          # liveness 는 약 50초 안에 포트가 안 열리면 죽이므로, 기동이 끝날 때까지(최대 3분) liveness 를 미룬다.
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            periodSeconds: 10
+            failureThreshold: 18
           readinessProbe:
             httpGet:
               path: /api/health
