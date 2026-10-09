@@ -4,7 +4,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
-  - notification-deployment.yaml
+  # neki-notification Deployment 는 BACKEND-135 로 Server apps/batch + Prefect(overlays/prefect)로 옮겨져 제거됨.
+  # 이 제거는 prefect-workflow Secret 에 firebase-service-account.json 키가 들어가고 weekend-explore 수동 실행으로
+  # 전달이 확인된 뒤에만 반영한다 (Server docs/hld/2026-10-06-notification-push-hld.md 11절 7단계)
   - ingress.yaml
   - ingressroute-https.yaml
   - certificate.yaml
