@@ -14,19 +14,6 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: yapp-monitoring-tls-cert
-  namespace: prod
-spec:
-  secretName: yapp-monitoring-tls-cert
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-  - yapp-monitoring.suitestudy.com
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
   name: admin-web-tls-cert
   namespace: prod
 spec:
