@@ -115,6 +115,11 @@ metadata:
   namespace: prod
   labels:
     app: neki-admin-web
+  annotations:
+    # ArgoCD 가 PVC 를 지우지 않게 한다(reclaimPolicy Delete 라 PVC 가 지워지면 데이터도 지워진다)
+    #   Prune=false  : 매니페스트에서 빠져도 prune 하지 않는다
+    #   Delete=false : Application 을 삭제해도(resources-finalizer cascade) 지우지 않는다
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
