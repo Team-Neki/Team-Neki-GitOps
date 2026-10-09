@@ -173,10 +173,12 @@ GHCR 패키지는 `team-neki-workflow` 처럼 **공개(public)** 여야 합니�
 `RollingUpdate` 로 두면 새 파드와 기존 파드가 겹치는 순간 같은 볼륨을 동시에 붙잡기
 때문입니다.
 
-Team-Neki-Admin 이 `75cf4f7` 에서 로컬 저장소를 걷어내고 관리자 API 프록시로 바뀌면서
-앱은 더 이상 `/app/.data` 에 아무것도 쓰지 않습니다. SQLite 의존성도 없습니다.
-지금 PVC·`fsGroup`·`Recreate` 는 근거를 잃은 상태로 남아 있고, 걷어낼지는 아직
-정하지 않았습니다. 그대로 둬도 동작에는 문제가 없습니다 (쓰지 않는 1Gi 볼륨이 붙을 뿐).
+Team-Neki-Admin 이 `75cf4f7` 에서 로컬 저장소를 걷어내고 관리자 API 프록시로 바뀌었습니다.
+그래서 SQLite 의존성은 없습니다. 하지만 2026-10-10 에 확인해 보니 `/app/.data/amplitude/`
+(`daily`, `metrics-ranges`, `dashboard-ranges`) 아래에 파일 59개(276K)가 있었습니다.
+파드 기동(09-18) 이후인 10-06 에 수정된 파일도 있어, 실행 중인 앱은 아직 이 경로에 캐시를
+씁니다. 따라서 PVC 는 그대로 두고, ArgoCD 가 지우지 않도록 `Prune=false,Delete=false` 를 붙였습니다.
+`fsGroup`·`Recreate` 를 걷어낼지는 앱이 이 경로를 정말 안 쓰게 된 뒤에 정합니다.
 
 ### Secret
 

@@ -139,8 +139,10 @@ metadata:
   labels:
     app: prometheus
   annotations:
-    # 매니페스트에서 빠져도 ArgoCD(prune: true)가 PVC 를 지우지 않게 한다(reclaimPolicy Delete 라 데이터도 지워진다)
-    argocd.argoproj.io/sync-options: Prune=false
+    # ArgoCD 가 PVC 를 지우지 않게 한다(reclaimPolicy Delete 라 PVC 가 지워지면 데이터도 지워진다)
+    #   Prune=false  : 매니페스트에서 빠져도 prune 하지 않는다
+    #   Delete=false : Application 을 삭제해도(resources-finalizer cascade) 지우지 않는다
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
@@ -424,8 +426,10 @@ metadata:
   labels:
     app: grafana
   annotations:
-    # 매니페스트에서 빠져도 ArgoCD(prune: true)가 PVC 를 지우지 않게 한다(reclaimPolicy Delete 라 데이터도 지워진다)
-    argocd.argoproj.io/sync-options: Prune=false
+    # ArgoCD 가 PVC 를 지우지 않게 한다(reclaimPolicy Delete 라 PVC 가 지워지면 데이터도 지워진다)
+    #   Prune=false  : 매니페스트에서 빠져도 prune 하지 않는다
+    #   Delete=false : Application 을 삭제해도(resources-finalizer cascade) 지우지 않는다
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
@@ -573,7 +577,8 @@ metadata:
   labels:
     app: loki
   annotations:
-    argocd.argoproj.io/sync-options: Prune=false
+    # prometheus-storage 와 같은 이유 (Prune=false: prune 방지, Delete=false: Application 삭제 시 cascade 방지)
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
