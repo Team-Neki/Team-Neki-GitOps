@@ -1,0 +1,8 @@
+# 노드의 /etc/rancher/k3s/config.yaml 원본. ArgoCD 가 동기화하지 않으므로 바꾸면 노드에 직접 반영하고 k3s 를 재시작한다.
+# (API 포트 --https-listen-port=8443 은 이 파일이 아니라 k3s systemd 유닛 ExecStart 에 있다)
+write-kubeconfig-mode: "0644"
+kube-proxy-arg:
+  # NodePort 를 노드 localhost 에서만 받는다. 공유기가 노드로 포트를 넘겨도 ArgoCD(31824/32693),
+  # Prefect(30420) 등 NodePort 는 외부에서 열리지 않고 SSH 터널(ssh -L <port>:localhost:<port>)로만 접근된다.
+  # Traefik(4641/5678)은 servicelb 가 ClusterIP 로 넘기므로 영향 없음.
+  - "nodeport-addresses=127.0.0.1/32"

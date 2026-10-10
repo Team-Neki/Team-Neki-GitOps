@@ -14,6 +14,8 @@ gitops-k3s/
 │   │   └── cluster-issuer.yaml     # Let's Encrypt ClusterIssuer
 │   ├── coredns/
 │   │   └── coredns-hairpin-nat.yaml # Hairpin NAT용 CoreDNS 커스텀 설정
+│   ├── k3s/
+│   │   └── config.yaml             # 노드 /etc/rancher/k3s/config.yaml (NodePort localhost 전용)
 │   └── traefik/
 │       └── traefik-helmchart.yaml  # Traefik Ingress Controller HelmChart
 └── overlays/                       # 환경별 Kustomize 오버레이
@@ -99,6 +101,25 @@ kubectl apply -f cluster/cert-manager/cluster-issuer.yaml
 
 ```bash
 kubectl apply -f cluster/coredns/coredns-hairpin-nat.yaml
+```
+
+### k3s 설정 (`cluster/k3s/config.yaml`)
+
+노드의 `/etc/rancher/k3s/config.yaml` 원본입니다. NodePort 를 노드 localhost 에서만 받도록(`nodeport-addresses=127.0.0.1/32`) 해서, ArgoCD·Prefect 같은 NodePort 서비스는 외부에서 열리지 않고 SSH 터널로만 접근됩니다. 이 설정이 없으면 NodePort 가 노드의 모든 인터페이스에서 열리고, 공유기가 포트를 넘기는 한 터널 없이도 인터넷에서 바로 접근됩니다. Traefik(4641/5678)은 servicelb 가 ClusterIP 로 넘기므로 영향이 없습니다.
+
+| 서비스 | 터널 | 브라우저 |
+|---|---|---|
+| ArgoCD | `ssh -L 8443:localhost:32693 -p <PORT> yapp@suitestudy.com` | https://localhost:8443 |
+| Prefect | `ssh -L 30420:localhost:30420 -p <PORT> yapp@suitestudy.com` | http://localhost:30420 |
+
+ArgoCD 가 동기화하지 않으므로 바꾸면 노드에 직접 반영하고 k3s 를 재시작합니다. 재시작해도 파드는 계속 돌고, API 서버만 잠깐 끊깁니다.
+
+```bash
+scp -P <PORT> cluster/k3s/config.yaml yapp@suitestudy.com:/tmp/k3s-config.yaml
+ssh -p <PORT> yapp@suitestudy.com
+sudo cp /etc/rancher/k3s/config.yaml /etc/rancher/k3s/config.yaml.bak
+sudo install -o root -g root -m 644 /tmp/k3s-config.yaml /etc/rancher/k3s/config.yaml
+sudo systemctl restart k3s
 ```
 
 ## 환경별 오버레이 (`overlays/`)
@@ -249,7 +270,7 @@ Prefect 3 셀프호스팅 서버와 Kubernetes 워커입니다. Helm 차트(pref
 
 ### 접속
 
-외부(DNS/nginx/TLS) 노출 없이 SSH 터널로만 접근합니다. UI 가 API 를 `http://localhost:30420/api` 로 호출하도록 설정되어 있으므로 **로컬 포트도 30420** 으로 맞춰야 합니다.
+외부(DNS/nginx/TLS) 노출 없이 SSH 터널로만 접근합니다. NodePort 30420 은 노드 localhost 에서만 열립니다([k3s 설정](#k3s-설정-clusterk3sconfigyaml)). UI 가 API 를 `http://localhost:30420/api` 로 호출하도록 설정되어 있으므로 **로컬 포트도 30420** 으로 맞춰야 합니다.
 
 ```bash
 ssh -L 30420:localhost:30420 -p <PORT> yapp@suitestudy.com
