@@ -57,7 +57,7 @@
       "targetBlank": false
     },
     {
-      "title": "Spring Boot Metrics",
+      "title": "JVM 상세 (파드별)",
       "url": "/d/spring-boot-metrics?${__url_time_range}",
       "type": "link",
       "icon": "external link",
