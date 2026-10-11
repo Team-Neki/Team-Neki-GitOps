@@ -38,6 +38,10 @@ data:
           # instance 레이블을 파드 이름으로 설정 (IP 대신)
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: instance
+          # 이미지 태그를 version 레이블로 추가 (파드 이름은 배포마다 바뀌므로 배포 전후 비교는 version 기준)
+          - source_labels: [__meta_kubernetes_pod_container_image]
+            regex: '.*:(.*)'
+            target_label: version
 ---
 # Prometheus RBAC
 apiVersion: v1
