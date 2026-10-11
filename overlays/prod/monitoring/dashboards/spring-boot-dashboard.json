@@ -101,13 +101,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"}",
+          "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"})",
           "legendFormat": "{{pod}} - Used",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"}",
+          "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"})",
           "legendFormat": "{{pod}} - Max",
           "refId": "B"
         }
@@ -216,7 +216,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": ["spring-boot"],

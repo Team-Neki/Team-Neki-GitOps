@@ -5,10 +5,10 @@
   "graphTooltip": 1,
   "id": null,
   "links": [
-    { "title": "오늘", "url": "/d/observability-dashboard?from=now/d&to=now&refresh=10s", "type": "link", "icon": "calendar-alt", "targetBlank": false },
+    { "title": "오늘", "url": "/d/observability-dashboard?from=now/d&to=now&refresh=30s", "type": "link", "icon": "calendar-alt", "targetBlank": false },
     { "title": "어제", "url": "/d/observability-dashboard?from=now-1d/d&to=now/d", "type": "link", "icon": "calendar-alt", "targetBlank": false },
-    { "title": "최근 3일", "url": "/d/observability-dashboard?from=now-3d&to=now&refresh=10s", "type": "link", "icon": "calendar-alt", "targetBlank": false },
-    { "title": "최근 7일", "url": "/d/observability-dashboard?from=now-7d&to=now&refresh=10s", "type": "link", "icon": "calendar-alt", "targetBlank": false }
+    { "title": "최근 3일", "url": "/d/observability-dashboard?from=now-3d&to=now&refresh=30s", "type": "link", "icon": "calendar-alt", "targetBlank": false },
+    { "title": "최근 7일", "url": "/d/observability-dashboard?from=now-7d&to=now&refresh=30s", "type": "link", "icon": "calendar-alt", "targetBlank": false }
   ],
   "liveNow": false,
   "panels": [
@@ -136,8 +136,8 @@
       "id": 6,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"} and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Used", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"} and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Max", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"$pod\"}) and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Used", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"$pod\"}) and on (pod) (count by (pod) (jvm_memory_used_bytes{application=\"neki\"} @ end()))", "legendFormat": "{{pod}} - Max", "refId": "B" }
       ],
       "title": "JVM Heap 메모리",
       "type": "timeseries"
@@ -206,7 +206,7 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
       "id": 10,
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "{app=\"neki-prod\", pod=~\"$pod\"} |= \"ERROR\"", "legendFormat": "", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "{app=\"neki-prod\", pod=~\"$pod\", level=\"ERROR\"}", "legendFormat": "", "refId": "A" }],
       "title": "에러 로그만 보기",
       "type": "logs"
     },
@@ -224,7 +224,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 36 },
       "id": 11,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum by (pod) (count_over_time({app=\"neki-prod\", pod=~\"$pod\"} |= \"ERROR\" [1m]))", "legendFormat": "{{pod}}", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum by (pod) (count_over_time({app=\"neki-prod\", pod=~\"$pod\", level=\"ERROR\"} [1m]))", "legendFormat": "{{pod}}", "refId": "A" }],
       "title": "에러 발생 추이 (분당)",
       "type": "timeseries"
     },
@@ -247,15 +247,15 @@
       "id": 12,
       "options": { "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "targets": [
-        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\"} |= \"INFO\" [1m]))", "legendFormat": "INFO", "refId": "A" },
-        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\"} |= \"WARN\" [1m]))", "legendFormat": "WARN", "refId": "B" },
-        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\"} |= \"ERROR\" [1m]))", "legendFormat": "ERROR", "refId": "C" }
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\", level=\"INFO\"} [1m]))", "legendFormat": "INFO", "refId": "A" },
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\", level=\"WARN\"} [1m]))", "legendFormat": "WARN", "refId": "B" },
+        { "datasource": { "type": "loki", "uid": "loki" }, "expr": "sum(count_over_time({app=\"neki-prod\", pod=~\"$pod\", level=\"ERROR\"} [1m]))", "legendFormat": "ERROR", "refId": "C" }
       ],
       "title": "로그 레벨별 추이",
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
   "tags": ["observability", "neki-prod", "loki"],
