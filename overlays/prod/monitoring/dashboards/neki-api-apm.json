@@ -23,42 +23,42 @@
   "links": [
     {
       "title": "최근 1시간",
-      "url": "/d/neki-api-apm?from=now-1h&to=now&refresh=30s",
+      "url": "/d/neki-api-apm?${namespace:queryparam}&from=now-1h&to=now&refresh=30s",
       "type": "link",
       "icon": "clock-nine",
       "targetBlank": false
     },
     {
       "title": "오늘",
-      "url": "/d/neki-api-apm?from=now/d&to=now&refresh=30s",
+      "url": "/d/neki-api-apm?${namespace:queryparam}&from=now/d&to=now&refresh=30s",
       "type": "link",
       "icon": "calendar-alt",
       "targetBlank": false
     },
     {
       "title": "최근 7일",
-      "url": "/d/neki-api-apm?from=now-7d&to=now",
+      "url": "/d/neki-api-apm?${namespace:queryparam}&from=now-7d&to=now",
       "type": "link",
       "icon": "calendar-alt",
       "targetBlank": false
     },
     {
       "title": "엔드포인트 상세",
-      "url": "/d/neki-api-endpoint?${__url_time_range}",
+      "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}",
       "type": "link",
       "icon": "search",
       "targetBlank": false
     },
     {
       "title": "Observability (로그)",
-      "url": "/d/observability-dashboard?${__url_time_range}",
+      "url": "/d/observability-dashboard?${namespace:queryparam}&${__url_time_range}",
       "type": "link",
       "icon": "external link",
       "targetBlank": false
     },
     {
       "title": "JVM 상세 (파드별)",
-      "url": "/d/spring-boot-metrics?${__url_time_range}",
+      "url": "/d/spring-boot-metrics?${namespace:queryparam}&${__url_time_range}",
       "type": "link",
       "icon": "external link",
       "targetBlank": false
@@ -135,7 +135,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code"
@@ -198,7 +198,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code"
@@ -269,7 +269,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -338,7 +338,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)",
+          "expr": "sum(increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) or vector(0)",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code"
@@ -409,7 +409,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
+          "expr": "(sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range])) or vector(0)) / (sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -482,7 +482,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
+          "expr": "sum(rate(http_server_requests_seconds_sum{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -646,7 +646,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (status_class) (label_replace(rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]), \"status_class\", \"${1}xx\", \"status\", \"(\\\\d)..\"))",
+          "expr": "sum by (status_class) (label_replace(rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]), \"status_class\", \"${1}xx\", \"status\", \"(\\\\d)..\"))",
           "refId": "A",
           "legendFormat": "{{status_class}}",
           "editorMode": "code"
@@ -715,7 +715,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -739,7 +739,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval]))",
+          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "{{status}} {{method}} {{uri}}",
           "editorMode": "code"
@@ -816,7 +816,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -843,7 +843,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0)",
+          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_sum{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (method, uri) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0)",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code"
@@ -912,7 +912,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -938,7 +938,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max by (method, uri) (http_server_requests_seconds_max{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"})",
+          "expr": "max by (method, uri) (http_server_requests_seconds_max{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"})",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code"
@@ -1007,7 +1007,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -1034,7 +1034,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
+          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code"
@@ -1103,7 +1103,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -1127,7 +1127,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__rate_interval]))",
+          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "{{status}} {{method}} {{uri}}",
           "editorMode": "code"
@@ -1186,7 +1186,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__data.fields.메서드}&var-uri=${__data.fields.엔드포인트}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__data.fields.메서드}&var-uri=${__data.fields.엔드포인트}"
             }
           ]
         },
@@ -1474,7 +1474,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -1487,7 +1487,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "sum by (method, uri) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
           "refId": "B",
           "legendFormat": "",
           "editorMode": "code",
@@ -1500,7 +1500,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range]))",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range]))",
           "refId": "C",
           "legendFormat": "",
           "editorMode": "code",
@@ -1513,7 +1513,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0) * 100",
           "refId": "D",
           "legendFormat": "",
           "editorMode": "code",
@@ -1526,7 +1526,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range]))",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"4..\"}[$__range]))",
           "refId": "E",
           "legendFormat": "",
           "editorMode": "code",
@@ -1539,7 +1539,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
+          "expr": "sum by (method, uri) (increase(http_server_requests_seconds_sum{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0)",
           "refId": "F",
           "legendFormat": "",
           "editorMode": "code",
@@ -1552,7 +1552,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max by (method, uri) (max_over_time(http_server_requests_seconds_max{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "max by (method, uri) (max_over_time(http_server_requests_seconds_max{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
           "refId": "G",
           "legendFormat": "",
           "editorMode": "code",
@@ -1652,7 +1652,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ],
           "decimals": 0
@@ -1681,7 +1681,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])))",
+          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code",
@@ -1733,7 +1733,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ],
           "decimals": 3
@@ -1762,7 +1762,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0))",
+          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_sum{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) / (sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range])) > 0))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code",
@@ -1806,7 +1806,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ],
           "decimals": 0
@@ -1835,7 +1835,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])))",
+          "expr": "topk(10, sum by (method, uri) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__range])))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code",
@@ -1938,7 +1938,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2026,7 +2026,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_sum{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) / (sum by (pod) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])) > 0) and on (pod) (count by (pod) (http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2114,7 +2114,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{application=\"neki\"} @ end()))",
+          "expr": "sum by (pod) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", status=~\"5..\"}[$__rate_interval])) and on (pod) (count by (pod) (http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"} @ end()))",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2193,7 +2193,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (status) (increase(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
+          "expr": "sum by (status) (increase(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{status}}",
           "editorMode": "code",
@@ -2264,7 +2264,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -2288,7 +2288,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (exception, method, uri) (rate(http_server_requests_seconds_count{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", exception!=\"none\"}[$__rate_interval]))",
+          "expr": "sum by (exception, method, uri) (rate(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\", exception!=\"none\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "{{exception}} — {{method}} {{uri}}",
           "editorMode": "code"
@@ -2376,7 +2376,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (pod) (http_server_requests_active_seconds_count{application=\"neki\", pod=~\"$pod\"})",
+          "expr": "sum by (pod) (http_server_requests_active_seconds_count{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\"})",
           "refId": "A",
           "legendFormat": "{{pod}}",
           "editorMode": "code"
@@ -2480,7 +2480,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
           "refId": "A",
           "legendFormat": "p50",
           "editorMode": "code"
@@ -2490,7 +2490,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
           "refId": "B",
           "legendFormat": "p95",
           "editorMode": "code"
@@ -2500,7 +2500,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
           "refId": "C",
           "legendFormat": "p99",
           "editorMode": "code"
@@ -2569,7 +2569,7 @@
           "links": [
             {
               "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
+              "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
@@ -2596,7 +2596,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{namespace=\"$namespace\", application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
           "refId": "A",
           "legendFormat": "{{method}} {{uri}}",
           "editorMode": "code"
@@ -2629,6 +2629,33 @@
         "skipUrlSync": false
       },
       {
+        "current": {
+          "selected": true,
+          "text": "prod",
+          "value": "prod"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "환경",
+        "multi": false,
+        "name": "namespace",
+        "options": [
+          {
+            "selected": true,
+            "text": "prod",
+            "value": "prod"
+          },
+          {
+            "selected": false,
+            "text": "staging",
+            "value": "staging"
+          }
+        ],
+        "query": "prod,staging",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
         "name": "pod",
         "label": "파드",
         "type": "query",
@@ -2636,9 +2663,9 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "query_result(count by (pod) (http_server_requests_seconds_count{application=\"neki\"}))",
+        "definition": "query_result(count by (pod) (http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"}))",
         "query": {
-          "query": "query_result(count by (pod) (http_server_requests_seconds_count{application=\"neki\"}))",
+          "query": "query_result(count by (pod) (http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"}))",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -2669,9 +2696,9 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(http_server_requests_seconds_count{application=\"neki\"}, method)",
+        "definition": "label_values(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"}, method)",
         "query": {
-          "query": "label_values(http_server_requests_seconds_count{application=\"neki\"}, method)",
+          "query": "label_values(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\"}, method)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -2702,9 +2729,9 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(http_server_requests_seconds_count{application=\"neki\", uri!~\"$uri_exclude\"}, uri)",
+        "definition": "label_values(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", uri!~\"$uri_exclude\"}, uri)",
         "query": {
-          "query": "label_values(http_server_requests_seconds_count{application=\"neki\", uri!~\"$uri_exclude\"}, uri)",
+          "query": "label_values(http_server_requests_seconds_count{namespace=\"$namespace\", application=\"neki\", uri!~\"$uri_exclude\"}, uri)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
