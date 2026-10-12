@@ -57,7 +57,7 @@
       "targetBlank": false
     },
     {
-      "title": "Spring Boot Metrics",
+      "title": "JVM 상세 (파드별)",
       "url": "/d/spring-boot-metrics?${__url_time_range}",
       "type": "link",
       "icon": "external link",
@@ -2386,221 +2386,220 @@
     {
       "id": 31,
       "type": "row",
-      "title": "📐 백분위 응답시간 p50/p95/p99 — 서버에서 histogram 활성화 필요 (설명 참고)",
-      "collapsed": true,
+      "title": "📐 백분위 응답시간 p50/p95/p99",
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 78
       },
-      "panels": [
+      "panels": []
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "전체 응답시간 p50 / p95 / p99",
+      "description": "http_server_requests_seconds_bucket(서버 percentiles-histogram 설정) 기반",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 79
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisBorderShow": false,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
         {
-          "id": 29,
-          "type": "timeseries",
-          "title": "전체 응답시간 p50 / p95 / p99",
-          "description": "Spring Boot 에 histogram 이 켜져 있어야 값이 나온다. 서버 application.yml 에 management.metrics.distribution.percentiles-histogram.http.server.requests=true 를 추가하면 http_server_requests_seconds_bucket 이 생기고 이 패널이 채워진다",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 0
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "refId": "A",
+          "legendFormat": "p50",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "unit": "s",
-              "custom": {
-                "drawStyle": "line",
-                "lineInterpolation": "smooth",
-                "lineWidth": 1,
-                "fillOpacity": 0,
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "pointSize": 4,
-                "spanNulls": false,
-                "axisPlacement": "auto",
-                "axisLabel": "",
-                "axisBorderShow": false,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "links": []
-            },
-            "overrides": []
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "refId": "B",
+          "legendFormat": "p95",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "mean",
-                "max"
-              ]
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "refId": "C",
+          "legendFormat": "p99",
+          "editorMode": "code"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "엔드포인트별 p95",
+      "description": "http_server_requests_seconds_bucket(서버 percentiles-histogram 설정) 기반",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 79
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 4,
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "axisBorderShow": false,
+            "scaleDistribution": {
+              "type": "linear"
             },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             }
           },
-          "targets": [
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
-              },
-              "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
-              "refId": "A",
-              "legendFormat": "p50",
-              "editorMode": "code"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
-              },
-              "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
-              "refId": "B",
-              "legendFormat": "p95",
-              "editorMode": "code"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
-              },
-              "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
-              "refId": "C",
-              "legendFormat": "p99",
-              "editorMode": "code"
+              "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
+              "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
             }
           ]
         },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
         {
-          "id": 30,
-          "type": "timeseries",
-          "title": "엔드포인트별 p95",
-          "description": "Spring Boot 에 histogram 이 켜져 있어야 값이 나온다. 서버 application.yml 에 management.metrics.distribution.percentiles-histogram.http.server.requests=true 를 추가하면 http_server_requests_seconds_bucket 이 생기고 이 패널이 채워진다",
           "datasource": {
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 0
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "unit": "s",
-              "custom": {
-                "drawStyle": "line",
-                "lineInterpolation": "smooth",
-                "lineWidth": 1,
-                "fillOpacity": 0,
-                "gradientMode": "opacity",
-                "showPoints": "never",
-                "pointSize": 4,
-                "spanNulls": false,
-                "axisPlacement": "auto",
-                "axisLabel": "",
-                "axisBorderShow": false,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "stacking": {
-                  "mode": "none",
-                  "group": "A"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                },
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              },
-              "links": [
-                {
-                  "title": "🔎 엔드포인트 상세 보기 (요청 목록·로그)",
-                  "url": "/d/neki-api-endpoint?${__url_time_range}&${DS_PROMETHEUS:queryparam}&${pod:queryparam}&var-method=${__field.labels.method}&var-uri=${__field.labels.uri}"
-                }
-              ]
-            },
-            "overrides": []
-          },
-          "options": {
-            "legend": {
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true,
-              "calcs": [
-                "mean",
-                "max"
-              ]
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
-              },
-              "expr": "histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
-              "refId": "A",
-              "legendFormat": "{{method}} {{uri}}",
-              "editorMode": "code"
-            }
-          ]
+          "expr": "histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{application=\"neki\", pod=~\"$pod\", method=~\"$method\", uri=~\"$uri\", uri!~\"$uri_exclude\"}[$__rate_interval])))",
+          "refId": "A",
+          "legendFormat": "{{method}} {{uri}}",
+          "editorMode": "code"
         }
       ]
     }
