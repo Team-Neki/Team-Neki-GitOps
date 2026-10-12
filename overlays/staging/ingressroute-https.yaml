@@ -7,7 +7,8 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`dev-yapp.suitestudy.com`)
+    # /actuator 는 외부에 열지 않는다. Prometheus scrape 와 k8s probe 는 파드 IP 로 직접 접근한다
+    - match: Host(`dev-yapp.suitestudy.com`) && !PathPrefix(`/actuator`)
       kind: Rule
       services:
         - name: yapp-app-staging-service
