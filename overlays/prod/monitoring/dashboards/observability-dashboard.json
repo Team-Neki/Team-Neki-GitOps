@@ -120,7 +120,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
       "id": 5,
       "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "avg by (version) (system_cpu_usage{application=\"neki\"}) * 100", "legendFormat": "{{version}}", "refId": "A" }],
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "avg by (version) (process_cpu_usage{application=\"neki\"}) * 100", "legendFormat": "{{version}}", "refId": "A" }],
       "title": "CPU 사용률",
       "type": "timeseries"
     },
