@@ -23,14 +23,14 @@
   "links": [
     {
       "title": "← 엔드포인트 상세",
-      "url": "/d/neki-api-endpoint?${__url_time_range}&${method:queryparam}&${uri:queryparam}",
+      "url": "/d/neki-api-endpoint?${namespace:queryparam}&${__url_time_range}&${method:queryparam}&${uri:queryparam}",
       "type": "link",
       "icon": "arrow-left",
       "targetBlank": false
     },
     {
       "title": "APM 엔드포인트 목록",
-      "url": "/d/neki-api-apm?${__url_time_range}",
+      "url": "/d/neki-api-apm?${namespace:queryparam}&${__url_time_range}",
       "type": "link",
       "icon": "apps",
       "targetBlank": false
@@ -221,7 +221,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{app=\"neki-prod\"} |= \"$request_id\" | json | __error__=\"\" | logCategory=\"API_REQUEST\" | requestId=\"$request_id\"",
+          "expr": "{namespace=\"$namespace\"} |= \"$request_id\" | json | __error__=\"\" | logCategory=\"API_REQUEST\" | requestId=\"$request_id\"",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -330,7 +330,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{app=\"neki-prod\"} |= \"$request_id\" | json | __error__=\"\" | requestId=\"$request_id\"",
+          "expr": "{namespace=\"$namespace\"} |= \"$request_id\" | json | __error__=\"\" | requestId=\"$request_id\"",
           "refId": "A",
           "legendFormat": "",
           "editorMode": "code",
@@ -351,6 +351,33 @@
   ],
   "templating": {
     "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "prod",
+          "value": "prod"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "환경",
+        "multi": false,
+        "name": "namespace",
+        "options": [
+          {
+            "selected": true,
+            "text": "prod",
+            "value": "prod"
+          },
+          {
+            "selected": false,
+            "text": "staging",
+            "value": "staging"
+          }
+        ],
+        "query": "prod,staging",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
       {
         "name": "request_id",
         "label": "request_id",
