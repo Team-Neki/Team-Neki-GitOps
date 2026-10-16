@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - worker.yaml
+# Prefect API 는 기존 prefect 네임스페이스의 서버를 공유한다.
+# Secret 은 이 네임스페이스에 직접 적용한다 (workflow-secret.example.yaml).
+configMapGenerator:
+  - name: prefect-worker-base-job-template
+    namespace: prefect-stg
+    files:
+      - baseJobTemplate.json=worker-base-job-template.json
+  - name: neki-images
+    namespace: prefect-stg
+    envs:
+      - images.env
+    options:
+      disableNameSuffixHash: true
