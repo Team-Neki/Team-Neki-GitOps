@@ -50,7 +50,8 @@ metadata:
   labels:
     app: prefect-worker
 spec:
-  replicas: 1
+  # 최초 설치: 지원 이미지와 staging Secret 준비 후 GitOps 에서 1로 변경한다.
+  replicas: 0
   selector:
     matchLabels:
       app: prefect-worker
@@ -67,13 +68,14 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
-        # work pool 이 이미 있으면 base job template 을 ConfigMap 내용으로 동기화 (최초 기동 시엔 건너뜀)
+        # 최초 생성과 재기동 모두 ConfigMap 의 base job template 을 적용한다.
         - name: sync-base-job-template
           image: prefecthq/prefect:3.8.5-python3.11-kubernetes
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
             - |
+              set -e
               work_pool_name="neki-stg-pool"
               # 서버가 아직 안 떠 있으면(동시 기동 시) API 가 응답할 때까지 최대 5분 대기
               i=0
@@ -84,11 +86,12 @@ spec:
                 sleep 5
               done
               if ! prefect work-pool inspect "$work_pool_name" > /dev/null 2>&1; then
-                echo "Work pool $work_pool_name does not exist yet; the worker will create it on start."
-                exit 0
+                echo "Creating work pool $work_pool_name with the staging base job template..."
+                prefect work-pool create "$work_pool_name" --type kubernetes --base-job-template ./baseJobTemplate.json
+              else
+                echo "Work pool $work_pool_name exists; syncing base job template..."
+                prefect work-pool update "$work_pool_name" --base-job-template ./baseJobTemplate.json
               fi
-              echo "Work pool $work_pool_name exists; syncing base job template..."
-              prefect work-pool update "$work_pool_name" --base-job-template ./baseJobTemplate.json
           workingDir: /home/prefect
           env:
             - name: HOME
@@ -133,12 +136,6 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              # worker 도 기동 시 pool 을 만들지만 그건 initContainer 뒤다.
-              # deploy.py 가 등록할 pool 이 먼저 있어야 하므로 없으면 만든다.
-              if ! prefect work-pool inspect "$PREFECT_WORK_POOL" > /dev/null 2>&1; then
-                echo "Work pool $PREFECT_WORK_POOL does not exist; creating..."
-                prefect work-pool create "$PREFECT_WORK_POOL" --type kubernetes
-              fi
               # WORKFLOW_IMAGE 는 이미지에 구워져 있어 job_variables.image 로 들어간다.
               python deploy.py --environment stg
           workingDir: /opt/prefect

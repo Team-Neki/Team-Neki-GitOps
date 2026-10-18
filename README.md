@@ -278,20 +278,50 @@ S3 자격증명은 환경별 버킷만 접근하도록 나누고 `s3:PutObject`,
 
 `DATABASE_URL` 은 파드에서 붙으므로 호스트를 `localhost` 로 적으면 안 됩니다. 노드 IP 또는 클러스터 Service 주소를 씁니다. 대상은 Prefect 메타DB(`prefect-db`)가 아니라 Team-Neki-Server 가 쓰는 앱 DB 입니다.
 
+기존 prod 설치 명령입니다. staging 최초 설치는 아래 절차로 분리합니다.
+
 ```bash
 kubectl apply -f overlays/prefect/secret.yaml
 kubectl apply -f overlays/prefect/workflow-secret.yaml
-kubectl apply -f overlays/prefect-stg/workflow-secret.yaml
 kubectl apply -k overlays/prefect/
-kubectl apply -k overlays/prefect-stg/
-kubectl apply -f argocd/apps/prefect-stg.yaml
 ```
 
-새 staging worker 를 처음 켤 때는 GitOps overlay 를 먼저 병합하고, Workflow 저장소의
-`build` 액션을 `environment=stg` 로 실행해 `--environment stg` 를 지원하는 이미지
-태그로 갱신합니다. 그 뒤 staging Secret 을 적용하고 `prefect-stg` Application 을
-동기화합니다. overlay 에 들어 있는 초기 이미지 태그는 기존 운영 이미지라 staging
-deployment 등록 기능이 없으며, 그대로 worker 를 시작하면 initContainer 가 실패합니다.
+### staging 최초 설치
+
+staging worker 는 최초 설치 시 `replicas: 0` 입니다. Application 이 먼저 동기화돼도
+지원하지 않는 초기 이미지로 worker 를 시작하지 않습니다. 준비 후 GitOps 에서
+`replicas: 1` 로 변경해야 합니다. `kubectl scale` 만 사용하면 ArgoCD selfHeal 이
+다시 0으로 되돌립니다.
+
+1. GitOps staging overlay 를 먼저 병합합니다.
+2. Workflow PR #34를 병합하거나 해당 브랜치의 `build` 액션을 `environment=stg`로
+   실행합니다. build가 성공하고 GitOps main의 staging worker 이미지 두 곳이
+   `--environment stg` 지원 이미지로 갱신됐는지 확인합니다. 초기 태그
+   `0.1.1-a593d55` 상태로는 worker 를 활성화하지 않습니다.
+3. 최신 GitOps main을 받은 뒤 namespace를 먼저 만들고 staging Secret을 적용합니다.
+   실제 Secret은 `workflow-secret.example.yaml`을 복사해 staging 값으로 작성합니다.
+
+   ```bash
+   git pull --ff-only
+   kubectl apply -f overlays/prefect-stg/namespace.yaml
+   kubectl apply -f overlays/prefect-stg/workflow-secret.yaml
+   ```
+
+4. `overlays/prefect-stg/worker.yaml`의 `replicas`를 1로 바꾸는 커밋을 main에 반영한 뒤
+   Application을 적용합니다. 이미 적용된 Application은 그 커밋을 자동 동기화합니다.
+
+   ```bash
+   kubectl apply -f argocd/apps/prefect-stg.yaml
+   kubectl -n prefect-stg rollout status deployment/prefect-worker
+   ```
+
+5. 첫 initContainer가 `neki-stg-pool`을 staging template과 함께 생성하거나 갱신합니다.
+   Prefect UI에서 pool의 namespace가 `prefect-stg`이고 Secret/ConfigMap 참조가 있는지
+   확인합니다. 새 `-stg` deployment는 pause 상태입니다. 수동 실행으로 DB/S3 대상과
+   검색 Batch Job을 확인한 뒤 필요한 스케줄만 켭니다.
+
+ArgoCD를 사용하지 않고 overlay를 직접 적용할 때도 위 이미지·Secret 준비와
+`replicas: 1` 변경을 마친 뒤 `kubectl apply -k overlays/prefect-stg/`를 실행합니다.
 
 ### 업그레이드
 
