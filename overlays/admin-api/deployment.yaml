@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neki-admin-api
+  labels:
+    app: neki-admin-api
+spec:
+  replicas: 1
+  # 현재 메모리 H2 구성에서 서로 다른 DB를 가진 파드가 동시에 요청을 받지 않게 한다.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: neki-admin-api
+  template:
+    metadata:
+      labels:
+        app: neki-admin-api
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: neki-admin-api
+          # 첫 workflow 실행이 실제 sha-<commit> 태그로 교체한다. bootstrap 이미지는 없다.
+          image: ghcr.io/team-neki/neki-admin-api:bootstrap
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          env:
+            # 현재 admin에는 local(H2)만 있다. Dockerfile의 staging 기본값을 덮는다.
+            - name: SPRING_PROFILES_ACTIVE
+              value: local
+            - name: SPRING_H2_CONSOLE_ENABLED
+              value: "false"
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0"
+          # admin에는 Actuator가 없다. 존재하지 않는 health URL 대신 TCP로 확인한다.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      terminationGracePeriodSeconds: 30

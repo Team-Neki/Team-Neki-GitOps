@@ -350,3 +350,42 @@ Server의 `Deploy Batch (GHCR + GitOps)`를 main에서 수동 실행한다. 워�
 초기 `:main` 값은 첫 배포 전 자리표시자다. 최초 이미지 게시와 GitOps 태그 갱신을 완료한 뒤 배치를 호출한다. 배치 이미지는 pull secret을 사용하지 않으므로 GHCR 패키지를 public으로 제공해야 한다. API가 먼저 배포되어 배치 메타 테이블 마이그레이션이 적용되어 있어야 한다.
 
 Job 템플릿 ConfigMap에는 내용 해시를 적용해 변경 시 worker의 볼륨 참조와 Pod가 갱신되고 initContainer가 work pool 템플릿을 다시 동기화한다. 이미지 태그 ConfigMap은 고정 이름을 유지하므로 이후 태그 변경만으로 worker를 재기동할 필요는 없다. 실행 중인 flow Job의 환경은 바뀌지 않으며 다음 Job부터 새 값을 읽는다.
+
+## Admin API (`admin-api` Application)
+
+Server PR #315의 `apps/admin`을 독립 Application으로 배포합니다.
+`argocd/apps/admin-api.yaml`은 `overlays/admin-api`만 관리하며 기존 `neki-prod`와
+리소스를 공유하지 않습니다. namespace는 `prod`, Deployment는 `neki-admin-api`,
+`replicas: 1` / `Recreate`입니다.
+
+현재 앱은 인증 자동설정을 제외하고 메모리 H2를 사용합니다. `local` 프로파일을
+명시하되 H2 콘솔은 끕니다. **재시작/재배포하면 데이터가 초기화되며 운영 PostgreSQL
+데이터를 관리하지 않습니다.** PostgreSQL 및 인증 연결은 별도 작업입니다.
+외부 Ingress/NodePort는 만들지 않으며 내부 주소는
+`http://neki-admin-api-service.prod.svc.cluster.local:8081`입니다.
+ClusterIP는 인증을 제공하지 않습니다. 클러스터 내부 접근은 가능합니다.
+
+### 최초 배포
+
+1. 이 GitOps 구성을 main에 먼저 머지합니다. 아직 Application은 apply하지 않습니다.
+   `bootstrap`은 자리표시자이며 실제 이미지가 아닙니다.
+2. Server PR #315를 머지한 뒤 Actions의 **Deploy Admin API (GHCR + GitOps)**를
+   수동 실행합니다. `ref`를 비우면 실행한 ref를 빌드하며 이전 SHA로 롤백할 수도 있습니다.
+   Server 저장소에서 `GITOPS_PAT`를 사용할 수 있어야 합니다.
+3. 워크플로가 admin 테스트/bootJar → GHCR push → 이 overlay의 이미지 태그를
+   `ghcr.io/team-neki/neki-admin-api:sha-<전체 커밋 SHA>`로 갱신합니다.
+   GitOps 갱신 완료는 클러스터 rollout 완료를 뜻하지 않습니다.
+4. GHCR `neki-admin-api` 패키지를 public으로 설정합니다. 이 구성은 imagePullSecret을
+   사용하지 않으므로 private 패키지는 가져올 수 없습니다.
+5. Application을 등록합니다.
+
+   ```bash
+   kubectl apply -f argocd/apps/admin-api.yaml
+   kubectl rollout status deployment/neki-admin-api -n prod --timeout=180s
+   kubectl port-forward -n prod svc/neki-admin-api-service 18081:8081
+   # 다른 터미널: curl --fail http://localhost:18081/admin/v1/brand
+   ```
+
+이후 배포는 동일 워크플로를 수동 실행하면 ArgoCD가 이미지 태그 변경을 반영합니다.
+`ref`에 이전 배포의 커밋 SHA를 넣으면 해당 코드를 다시 빌드해 되돌립니다.
+어드민 웹 연결과 외부 공개는 이 PR의 범위에 포함하지 않습니다.
