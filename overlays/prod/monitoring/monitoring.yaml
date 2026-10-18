@@ -99,6 +99,7 @@ metadata:
   labels:
     app: prometheus
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   strategy:
     type: Recreate
@@ -338,6 +339,7 @@ metadata:
   labels:
     app: grafana
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   strategy:
     type: Recreate
@@ -528,6 +530,7 @@ metadata:
   labels:
     app: loki
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   strategy:
     type: Recreate
@@ -723,6 +726,7 @@ metadata:
   labels:
     app: promtail
 spec:
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: promtail

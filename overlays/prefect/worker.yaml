@@ -49,6 +49,7 @@ metadata:
   labels:
     app: prefect-worker
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   selector:
     matchLabels:

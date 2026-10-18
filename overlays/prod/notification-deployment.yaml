@@ -6,6 +6,7 @@ metadata:
   labels:
     app: neki-notification
 spec:
+  revisionHistoryLimit: 3
   # 배치/스케줄러 워커는 단일 인스턴스로 운영
   # (분산 락/ShedLock이 없다면 @Scheduled 작업이 여러 파드에서 중복 실행됨)
   replicas: 1
