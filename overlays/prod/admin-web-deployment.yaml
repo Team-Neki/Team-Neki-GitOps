@@ -19,6 +19,7 @@ metadata:
   labels:
     app: neki-admin-web
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   strategy:
     type: Recreate

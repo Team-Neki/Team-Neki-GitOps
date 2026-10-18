@@ -33,6 +33,7 @@ metadata:
   labels:
     app: prefect-server
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   selector:
     matchLabels:

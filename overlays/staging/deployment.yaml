@@ -6,6 +6,7 @@ metadata:
   labels:
     app: yapp-app-staging
 spec:
+  revisionHistoryLimit: 3
   replicas: 1
   # Rolling Update 전략 설정 - 다운타임 제로
   strategy:
