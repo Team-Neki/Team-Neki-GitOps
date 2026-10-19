@@ -51,7 +51,7 @@ metadata:
     app: prefect-worker
 spec:
   # 최초 설치: 지원 이미지와 staging Secret 준비 후 GitOps 에서 1로 변경한다.
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: prefect-worker
