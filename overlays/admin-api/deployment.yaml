@@ -6,7 +6,6 @@ metadata:
     app: neki-admin-api
 spec:
   replicas: 1
-  # 현재 메모리 H2 구성에서 서로 다른 DB를 가진 파드가 동시에 요청을 받지 않게 한다.
   strategy:
     type: Recreate
   selector:
@@ -27,11 +26,13 @@ spec:
             - name: http
               containerPort: 8081
           env:
-            # 현재 admin에는 local(H2)만 있다. Dockerfile의 staging 기본값을 덮는다.
             - name: SPRING_PROFILES_ACTIVE
-              value: local
-            - name: SPRING_H2_CONSOLE_ENABLED
-              value: "false"
+              value: prod
+            - name: JASYPT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: neki-secrets
+                  key: jasypt-password
             - name: TZ
               value: Asia/Seoul
             - name: JAVA_TOOL_OPTIONS

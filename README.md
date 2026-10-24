@@ -353,14 +353,16 @@ Job 템플릿 ConfigMap에는 내용 해시를 적용해 변경 시 worker의 �
 
 ## Admin API (`admin-api` Application)
 
-Server PR #315의 `apps/admin`을 독립 Application으로 배포합니다.
+Server PR #356의 `apps/admin`을 독립 Application으로 배포합니다.
 `argocd/apps/admin-api.yaml`은 `overlays/admin-api`만 관리하며 기존 `neki-prod`와
-리소스를 공유하지 않습니다. namespace는 `prod`, Deployment는 `neki-admin-api`,
+Kubernetes 리소스를 공유하지 않습니다. namespace는 `prod`, Deployment는 `neki-admin-api`,
 `replicas: 1` / `Recreate`입니다.
 
-현재 앱은 인증 자동설정을 제외하고 메모리 H2를 사용합니다. `local` 프로파일을
-명시하되 H2 콘솔은 끕니다. **재시작/재배포하면 데이터가 초기화되며 운영 PostgreSQL
-데이터를 관리하지 않습니다.** PostgreSQL 및 인증 연결은 별도 작업입니다.
+`prod` 프로파일로 API와 같은 PostgreSQL DB·스키마의 기존 테이블을 사용합니다.
+암호화된 연결 정보는 API와 동일한 `neki-secrets`의 `jasypt-password`를
+`JASYPT_PASSWORD`로 전달해 읽습니다. admin은 Flyway 검증만 수행하므로 필요한
+마이그레이션은 API를 먼저 배포해 적용합니다. 별도 admin 스키마는 만들지 않습니다.
+인증 구현은 후속 작업입니다.
 외부 Ingress/NodePort는 만들지 않으며 내부 주소는
 `http://neki-admin-api-service.prod.svc.cluster.local:8081`입니다.
 ClusterIP는 인증을 제공하지 않습니다. 클러스터 내부 접근은 가능합니다.
@@ -369,7 +371,8 @@ ClusterIP는 인증을 제공하지 않습니다. 클러스터 내부 접근은 
 
 1. 이 GitOps 구성을 main에 먼저 머지합니다. 아직 Application은 apply하지 않습니다.
    `bootstrap`은 자리표시자이며 실제 이미지가 아닙니다.
-2. Server PR #315를 머지한 뒤 Actions의 **Deploy Admin API (GHCR + GitOps)**를
+2. API의 DB 마이그레이션과 `prod` namespace의 `neki-secrets` 준비를 확인합니다.
+   Server PR #356과 #357을 머지한 뒤 Actions의 **Deploy Admin API (GHCR + GitOps)**를
    수동 실행합니다. `ref`를 비우면 실행한 ref를 빌드하며 이전 SHA로 롤백할 수도 있습니다.
    Server 저장소에서 `GITOPS_PAT`를 사용할 수 있어야 합니다.
 3. 워크플로가 admin 테스트/bootJar → GHCR push → 이 overlay의 이미지 태그를
