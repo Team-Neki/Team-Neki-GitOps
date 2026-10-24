@@ -388,11 +388,13 @@ DB 연결은 API와 같은 postgres 공통 설정을 사용합니다. 기존 `ne
 
 1. GitOps 구성을 main에 먼저 머지합니다. 아직 Application은 apply하지 않습니다.
    `bootstrap`은 자리표시자이며 실제 이미지가 아닙니다.
-2. Server의 공유 DB 마이그레이션을 API 배포로 먼저 적용합니다.
-   admin은 Flyway validate만 수행하므로 ADMIN_SESSION 스키마나 Google 고유키가
+2. Server의 공유 DB 마이그레이션 V41·V42·V43을 API 배포로 먼저 적용합니다.
+   admin은 Flyway validate만 수행하므로 세션 스키마·관리자 계정 전환·공동 관리 미디어 컬럼이
    미적용이면 기동을 거부합니다.
-3. admin init·auth·workflow PR을 머지한 뒤 Actions의 **Deploy Admin API (GHCR + GitOps)**를
-   수동 실행합니다. Server 저장소에서 `GITOPS_PAT`를 사용할 수 있어야 합니다.
+3. Server의 admin init #356 → 세션 인증 #361 → workflow #357 순서로 머지한 뒤
+   Actions의 **Deploy Admin API (GHCR + GitOps)**를 수동 실행합니다. 브랜드 #358과
+   포즈 #359는 #361을 기반으로 하며 각 기능을 사용하기 전에 머지합니다. Server 저장소의
+   `admin-production` 보호 환경에 승인자와 `ADMIN_GITOPS_PAT` 환경 secret이 있어야 합니다.
    워크플로가 `deployment.yaml`의 이미지 한 줄을 `sha-<전체 커밋 SHA>` 태그로 갱신합니다.
 4. GHCR `neki-admin-api` 패키지를 public으로 설정합니다. 이 구성은 imagePullSecret을
    사용하지 않으므로 private 패키지는 가져올 수 없습니다.
