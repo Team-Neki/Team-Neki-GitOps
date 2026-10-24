@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neki-admin-api
+  labels:
+    app: neki-admin-api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  # PostgreSQL에 세션을 공유하므로 롤링 중에도 로그인 상태를 유지한다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: neki-admin-api
+  template:
+    metadata:
+      labels:
+        app: neki-admin-api
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: neki-admin-api
+          # 첫 workflow 실행이 실제 sha-<commit> 태그로 교체한다. bootstrap 이미지는 없다.
+          image: ghcr.io/team-neki/neki-admin-api:bootstrap
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          envFrom:
+            - secretRef:
+                name: neki-admin-api-secret
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: JASYPT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: neki-secrets
+                  key: jasypt-password
+            - name: TZ
+              value: Asia/Seoul
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0"
+          # admin에는 Actuator가 없다. 존재하지 않는 health URL 대신 TCP로 확인한다.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 36
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      terminationGracePeriodSeconds: 30

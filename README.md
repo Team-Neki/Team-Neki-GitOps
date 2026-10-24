@@ -390,3 +390,68 @@ Server의 `Deploy Batch (GHCR + GitOps)`를 수동 실행하며 `environment=stg
 초기 `:main` 값은 첫 배포 전 자리표시자다. 최초 이미지 게시와 GitOps 태그 갱신을 완료한 뒤 배치를 호출한다. 배치 이미지는 pull secret을 사용하지 않으므로 GHCR 패키지를 public으로 제공해야 한다. API가 먼저 배포되어 배치 메타 테이블 마이그레이션이 적용되어 있어야 한다.
 
 Job 템플릿 ConfigMap에는 내용 해시를 적용해 변경 시 worker의 볼륨 참조와 Pod가 갱신되고 initContainer가 work pool 템플릿을 다시 동기화한다. 이미지 태그 ConfigMap은 고정 이름을 유지하므로 이후 태그 변경만으로 worker를 재기동할 필요는 없다. 실행 중인 flow Job의 환경은 바뀌지 않으며 다음 Job부터 새 값을 읽는다.
+
+## Admin API (`admin-api` Application)
+
+Server의 `apps/admin`을 독립 ArgoCD Application으로 배포합니다.
+`argocd/apps/admin-api.yaml`은 `overlays/admin-api`만 관리하며 기존 `neki-prod`와
+리소스를 공유하지 않습니다. namespace는 `prod`, Deployment는 `neki-admin-api`,
+`replicas: 1`, `RollingUpdate(maxSurge=1, maxUnavailable=0)`입니다.
+롤링 중에만 새 Pod와 기존 Pod가 겹칠 수 있으며, 세션은 PostgreSQL에 공유합니다.
+
+Google OIDC와 Spring Session JDBC를 사용합니다. 운영자가 기존 `TB_USERS.role`에
+`ROLE_ADMIN`을 부여·회수하며 Spring이 매 관리 요청에서 현재 DB 권한을 확인합니다.
+세션은 마지막 접근 후 30분간 요청이 없으면 만료됩니다. 메모리 H2/local 프로파일은
+배포하지 않습니다.
+
+Service 주소는 `http://neki-admin-api-service.prod.svc.cluster.local:8081`입니다.
+외부 Ingress/NodePort는 만들지 않으며 Next 서버 프록시가 이 주소로 요청합니다.
+Next 로그인·콜백·세션 쿠키 프록시는 별도 연결 작업입니다. Spring 직접 콜백 개발은
+로컬 실행 또는 port-forward로 검증할 수 있습니다. 운영 쿠키는 Secure이므로 실제
+브라우저 연결은 HTTPS를 사용하고, URI·호스트가 확정된 뒤 Google에 등록합니다.
+
+### Secret
+
+`overlays/admin-api/secret.example.yaml`을 `secret.yaml`로 복사해 실제 값으로 채웁니다.
+`secret.yaml`은 기존 gitignore 규칙으로 커밋되지 않습니다. Secret은 예시나
+Kustomization에 포함하지 않고 운영자가 직접 적용합니다.
+
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: Google Web application 클라이언트 자격증명
+- `ADMIN_OAUTH_REDIRECT_URI`: 브라우저가 접근할 수 있는 외부 콜백. Google 등록값과 정확히 일치
+
+Secret이 없으면 Pod는 시작하지 않으며, 설정 변경 후에는 Deployment를 재시작해야 합니다.
+DB 연결은 API와 같은 postgres 공통 설정을 사용합니다. 기존 `neki-secrets`의
+`jasypt-password`를 `JASYPT_PASSWORD`로 주입해 암호화된 연결 정보를 읽습니다.
+기존 DB Secret을 복제하거나 별도 admin DB·스키마를 만들지 않습니다.
+
+### 최초 배포
+
+1. GitOps 구성을 main에 먼저 머지합니다. 아직 Application은 apply하지 않습니다.
+   `bootstrap`은 자리표시자이며 실제 이미지가 아닙니다.
+2. Server의 공유 DB 마이그레이션 V41·V42·V43을 API 배포로 먼저 적용합니다.
+   admin은 Flyway validate만 수행하므로 세션 스키마·관리자 계정 전환·공동 관리 미디어 컬럼이
+   미적용이면 기동을 거부합니다.
+3. Server의 admin init #356 → 세션 인증 #361 → workflow #357 순서로 머지한 뒤
+   Actions의 **Deploy Admin API (GHCR + GitOps)**를 수동 실행합니다. 브랜드 #358과
+   포즈 #359는 #361을 기반으로 하며 각 기능을 사용하기 전에 머지합니다. Server 저장소의
+   `admin-production` 보호 환경에 승인자와 `ADMIN_GITOPS_PAT` 환경 secret이 있어야 합니다.
+   워크플로가 `deployment.yaml`의 이미지 한 줄을 `sha-<전체 커밋 SHA>` 태그로 갱신합니다.
+4. GHCR `neki-admin-api` 패키지를 public으로 설정합니다. 이 구성은 imagePullSecret을
+   사용하지 않으므로 private 패키지는 가져올 수 없습니다.
+5. `prod` namespace의 기존 `neki-secrets` 준비를 확인하고 OAuth Secret을 적용한 뒤 Application을 등록합니다.
+
+   ```bash
+   kubectl apply -f overlays/admin-api/secret.yaml
+   kubectl apply -f argocd/apps/admin-api.yaml
+   kubectl rollout status deployment/neki-admin-api -n prod --timeout=180s
+   kubectl port-forward -n prod svc/neki-admin-api-service 8081:8081
+   ```
+
+로그인하지 않은 `/admin/v1/auth/me`는 HTTP 401이어야 합니다. Google callback URI가
+준비되면 로그인 → me에서 사용자/권한/CSRF 조회 → DB ADMIN 부여 → 같은 세션으로
+관리 요청 허용 → ADMIN 회수 후 403 → CSRF를 포함한 로그아웃을 확인합니다.
+GitOps 커밋 완료는 실제 ArgoCD rollout 성공을 뜻하지 않습니다.
+
+이후 배포는 동일 워크플로를 수동 실행하면 ArgoCD가 이미지 태그 변경을 반영합니다.
+이전 SHA를 다시 빌드해 롤백할 수 있지만 DB 마이그레이션은 유지됩니다.
+인증·PostgreSQL 지원 전의 H2 기반 이미지로 되돌리면 같은 운영 계약을 보장하지 못합니다.
