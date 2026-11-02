@@ -70,7 +70,11 @@ spec:
               cpu: "1000m"
               memory: "1Gi"
           securityContext:
+            # 이미지 USER가 이름(spring)이면 kubelet이 non-root를 검증하지 못한다.
+            # Dockerfile의 adduser -S가 배정한 UID/GID와 같은 숫자를 지정한다.
             runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 101
             allowPrivilegeEscalation: false
             capabilities:
               drop:
