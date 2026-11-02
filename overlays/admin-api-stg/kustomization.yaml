@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# prod 구성(overlays/admin-api)을 그대로 쓰고 staging API(yapp-app-staging)와 같은 DB만 바라보게 바꾼다.
+namespace: staging
+resources:
+  - ../admin-api
+# Deploy Admin API 워크플로는 prod deployment.yaml만 갱신한다. staging 태그는 여기서 직접 올린다.
+images:
+  - name: ghcr.io/team-neki/neki-admin-api
+    newTag: bootstrap
+patches:
+  - target:
+      kind: Deployment
+      name: neki-admin-api
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: neki-admin-api
+      spec:
+        template:
+          spec:
+            containers:
+              - name: neki-admin-api
+                env:
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: staging
+                  - name: JASYPT_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: yapp-secrets
+                        key: jasypt-password
