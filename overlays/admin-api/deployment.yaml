@@ -25,7 +25,7 @@ spec:
       containers:
         - name: neki-admin-api
           # 첫 workflow 실행이 실제 sha-<commit> 태그로 교체한다. bootstrap 이미지는 없다.
-          image: ghcr.io/team-neki/neki-admin-api:bootstrap
+          image: ghcr.io/team-neki/neki-admin-api:sha-699cf7af874a6dff7ce44302c42b41f1b2ab8d07-run-42054712236-attempt-1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
