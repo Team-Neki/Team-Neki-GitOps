@@ -1,0 +1,180 @@
+# NEKI 랜딩 페이지 (Team-Neki/neki-landing, 빌드 없는 정적 사이트).
+#
+# 이미지를 따로 빌드하지 않는다. git-sync 사이드카가 public 레포 main 을 60초마다 당겨
+# emptyDir 에 받고, nginx 가 그 디렉토리를 그대로 서빙한다. 랜딩 레포에 push 하면
+# 1분 안에 반영되며 파드 재시작이 필요 없다.
+# git-sync 는 /git/<커밋해시> 에 받은 뒤 /git/current 심볼릭 링크를 원자적으로 바꾼다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neki-landing
+  namespace: prod
+  labels:
+    app: neki-landing
+spec:
+  revisionHistoryLimit: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neki-landing
+  template:
+    metadata:
+      labels:
+        app: neki-landing
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        # 첫 clone 을 끝낸 뒤 nginx 를 띄운다(빈 디렉토리 서빙 방지).
+        - name: git-clone
+          image: registry.k8s.io/git-sync/git-sync:v4.4.0
+          args:
+            - --repo=https://github.com/Team-Neki/neki-landing.git
+            - --ref=main
+            - --root=/git
+            - --link=current
+            - --depth=1
+            - --one-time
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65533
+            runAsGroup: 65533
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          volumeMounts:
+            - name: site
+              mountPath: /git
+      containers:
+        - name: git-sync
+          image: registry.k8s.io/git-sync/git-sync:v4.4.0
+          args:
+            - --repo=https://github.com/Team-Neki/neki-landing.git
+            - --ref=main
+            - --root=/git
+            - --link=current
+            - --depth=1
+            - --period=60s
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65533
+            runAsGroup: 65533
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          volumeMounts:
+            - name: site
+              mountPath: /git
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: site
+              mountPath: /git
+              readOnly: true
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: site
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: neki-landing-nginx
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neki-landing-nginx
+  namespace: prod
+  labels:
+    app: neki-landing
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        root /git/current;
+        index index.html;
+
+        # 레포의 문서·원본 소스는 서빙하지 않는다
+        location ~ /\.git { deny all; return 404; }
+        location ~ ^/[^/]+\.md$ { return 404; }
+        location ^~ /assets/ { return 404; }
+        location ^~ /.claude/ { return 404; }
+
+        location ~* \.(css|js|png|jpe?g|webp|svg|ico|woff2?)$ {
+            expires 1h;
+            add_header Cache-Control "public";
+            try_files $uri =404;
+        }
+
+        location / {
+            try_files $uri $uri/ $uri.html =404;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neki-landing-service
+  namespace: prod
+  labels:
+    app: neki-landing
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: neki-landing

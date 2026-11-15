@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: landing-ingressroute-https
+  namespace: prod
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`neki.suitestudy.com`)
+      kind: Rule
+      services:
+        - name: neki-landing-service
+          port: 80
+  tls:
+    secretName: landing-tls-cert
