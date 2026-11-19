@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: yapp-app-staging
-        image: zxz4641/yapp-dev:1.0.0-2c29488
+        image: ghcr.io/team-neki/neki-api:1.0.0-4dd5576
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
