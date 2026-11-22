@@ -457,3 +457,26 @@ GitOps 커밋 완료는 실제 ArgoCD rollout 성공을 뜻하지 않습니다.
 이후 배포는 동일 워크플로를 수동 실행하면 ArgoCD가 이미지 태그 변경을 반영합니다.
 이전 SHA를 다시 빌드해 롤백할 수 있지만 DB 마이그레이션은 유지됩니다.
 인증·PostgreSQL 지원 전의 H2 기반 이미지로 되돌리면 같은 운영 계약을 보장하지 못합니다.
+
+### Staging (`admin-api-stg` Application)
+
+`overlays/admin-api-stg`는 `overlays/admin-api`를 base로 쓰고 세 가지만 바꿉니다.
+namespace는 `staging`, `SPRING_PROFILES_ACTIVE`는 `staging`, `JASYPT_PASSWORD`는
+`yapp-secrets`에서 읽습니다. 그래서 staging API(`yapp-app-staging`)와 같은 DB·S3 버킷을 씁니다.
+Service 주소는 `http://neki-admin-api-service.staging.svc.cluster.local:8081`입니다.
+
+Deploy Admin API 워크플로는 prod `deployment.yaml`만 갱신합니다. staging 이미지는
+`overlays/admin-api-stg/kustomization.yaml`의 `images[].newTag`를 직접 올려 배포합니다.
+
+1. Server Actions의 **Deploy API to Staging (K3s + GitOps)**를 #361을 포함한 ref로 실행해
+   staging DB에 V41·V42·V43을 적용하고 `flyway_schema_history`에서 V43을 확인합니다.
+   staging은 수동 배포라서 prod처럼 main 머지만으로는 적용되지 않습니다.
+2. `newTag`를 빌드된 `sha-<커밋 SHA>` 태그로 바꿔 main에 머지합니다.
+3. Secret을 적용하고 Application을 등록합니다.
+
+   ```bash
+   kubectl apply -f overlays/admin-api-stg/secret.yaml
+   kubectl apply -f argocd/apps/admin-api-stg.yaml
+   kubectl rollout status deployment/neki-admin-api -n staging --timeout=180s
+   kubectl port-forward -n staging svc/neki-admin-api-service 8081:8081
+   ```
