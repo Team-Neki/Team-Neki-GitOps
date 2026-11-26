@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: neki-prod
-        image: ghcr.io/team-neki/neki-api:1.0.0-87a8a22
+        image: ghcr.io/team-neki/neki-api:1.0.0-7b6e979
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
