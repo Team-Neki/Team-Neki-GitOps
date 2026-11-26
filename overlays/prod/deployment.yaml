@@ -57,7 +57,7 @@ spec:
           periodSeconds: 5         # 5초마다 체크
           timeoutSeconds: 3        # 3초 타임아웃
           successThreshold: 1      # 1번 성공하면 시작 완료
-          failureThreshold: 12     # 12번 실패(60초)하면 재시작
+          failureThreshold: 24     # 24번 실패(120초)하면 재시작
         # Readiness Probe - 트래픽을 받을 준비가 되었는지 확인
         # startupProbe 성공 후 바로 실행됨
         readinessProbe:
